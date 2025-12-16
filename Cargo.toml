@@ -1,0 +1,15 @@
+[package]
+name = "oxwc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+smithay = { version = "0.7", default-features = false, features = [
+    "backend_winit",
+    "desktop",
+    "renderer_glow",
+    "wayland_frontend",
+] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2"
