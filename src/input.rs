@@ -148,8 +148,8 @@ impl Oxwc {
         let keyboard = self.seat.get_keyboard().expect("keyboard not initialized");
         let alt_held = keyboard.modifier_state().alt;
 
-        if ButtonState::Pressed == button_state && button == left_button && alt_held {
-            if let Some((window, _)) = self.surface_under_pointer() {
+        if ButtonState::Pressed == button_state && button == left_button && alt_held
+            && let Some((window, _)) = self.surface_under_pointer() {
                 let window_location = self.space.element_geometry(&window)
                     .map(|geo| geo.loc)
                     .unwrap_or_default();
@@ -161,15 +161,14 @@ impl Oxwc {
                 self.space.raise_element(&window, true);
                 return;
             }
-        }
 
         if ButtonState::Released == button_state && button == left_button && self.move_grab.is_some() {
             self.move_grab = None;
             return;
         }
 
-        if ButtonState::Pressed == button_state {
-            if let Some((window, _)) = self.surface_under_pointer() {
+        if ButtonState::Pressed == button_state
+            && let Some((window, _)) = self.surface_under_pointer() {
                 self.space.raise_element(&window, true);
 
                 keyboard.set_focus(
@@ -182,7 +181,6 @@ impl Oxwc {
                     window.toplevel().map(|toplevel| toplevel.send_pending_configure());
                 });
             }
-        }
 
         let pointer = self.pointer();
         pointer.button(
