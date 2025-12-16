@@ -27,6 +27,7 @@
           pkgs.clippy
           pkgs.foot
           pkgs.just
+          pkgs.pkg-config
         ];
         shellHook = ''
           export PS1="(oxwc-dev) $PS1"
