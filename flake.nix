@@ -31,9 +31,12 @@
         ];
         shellHook = ''
           export PS1="(oxwc-dev) $PS1"
-          export LD_LIBRARY_PATH="${pkgs.wayland}/lib:${pkgs.libxkbcommon}/lib:${pkgs.libGL}/lib:$LD_LIBRARY_PATH"
         '';
-        env.RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
+
+        env = {
+          RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.wayland pkgs.libxkbcommon pkgs.libGL];
+        };
       };
     });
 
