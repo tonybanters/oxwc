@@ -1,15 +1,32 @@
 pub mod tiling;
+
 use smithay::desktop::Window;
 
-pub enum LayoutType {
-    Tiling,
-}
+pub type LayoutBox = Box<dyn Layout>;
 
 pub struct GapConfig {
     pub inner_horizontal: u32,
     pub inner_vertical: u32,
     pub outer_horizontal: u32,
     pub outer_vertical: u32,
+}
+
+pub enum LayoutType {
+    Tiling,
+}
+
+impl LayoutType {
+    pub fn new(&self) -> LayoutBox {
+        match self {
+            LayoutType::Tiling => Box::new(tiling::Tiling),
+        }
+    }
+    pub fn from_str(s: &str) -> Result<Self, String> {
+        match s.to_lowercase().as_str() {
+            "tiling" => Ok(Self::Tiling),
+            _ => Err(format!("Invalid Layout Type: {}", s)),
+        }
+    }
 }
 
 pub trait Layout {

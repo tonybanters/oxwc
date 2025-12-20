@@ -19,4 +19,5 @@ use smithay::{
     },
 };
 pub struct Workspace {
+    layout: Layout,
 }

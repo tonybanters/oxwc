@@ -32,7 +32,10 @@ impl CompositorHandler for Oxwc {
         &mut self.compositor_state
     }
 
-    fn client_compositor_state<'a>(&self, client: &'a smithay::reexports::wayland_server::Client) -> &'a CompositorClientState {
+    fn client_compositor_state<'a>(
+        &self,
+        client: &'a smithay::reexports::wayland_server::Client,
+    ) -> &'a CompositorClientState {
         &client.get_data::<ClientState>().unwrap().compositor_state
     }
 
@@ -79,6 +82,7 @@ impl XdgShellHandler for Oxwc {
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = Window::new_wayland_window(surface.clone());
         self.space.map_element(window, (0, 0), false);
+        self.apply_layout().ok();
         surface.send_configure();
     }
 
@@ -86,7 +90,13 @@ impl XdgShellHandler for Oxwc {
 
     fn grab(&mut self, _surface: PopupSurface, _seat: wl_seat::WlSeat, _serial: Serial) {}
 
-    fn reposition_request(&mut self, _surface: PopupSurface, _positioner: PositionerState, _token: u32) {}
+    fn reposition_request(
+        &mut self,
+        _surface: PopupSurface,
+        _positioner: PositionerState,
+        _token: u32,
+    ) {
+    }
 
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
         let window = self
