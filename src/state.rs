@@ -1,11 +1,11 @@
 use smithay::{
     desktop::{Space, Window},
-    input::{pointer::PointerHandle, Seat, SeatState},
+    input::{Seat, SeatState, pointer::PointerHandle},
     reexports::{
         calloop::LoopHandle,
         wayland_server::{
-            backend::{ClientData, ClientId, DisconnectReason},
             Display, DisplayHandle,
+            backend::{ClientData, ClientId, DisconnectReason},
         },
     },
     utils::{Logical, Point},
@@ -61,30 +61,32 @@ impl Oxwc {
         let mut seat_state = SeatState::new();
         let seat_name = "seat0".to_string();
         let seat = seat_state.new_wl_seat(&display_handle, seat_name);
+        let space = Space::default();
 
-        (Self {
-            display_handle,
-            loop_handle,
-            running: true,
+        (
+            Self {
+                display_handle,
+                loop_handle,
+                running: true,
 
-            space: Space::default(),
-            seat,
-            seat_state,
+                space,
+                seat,
+                seat_state,
 
-            compositor_state,
-            xdg_shell_state,
-            shm_state,
-            output_manager_state,
-            data_device_state,
+                compositor_state,
+                xdg_shell_state,
+                shm_state,
+                output_manager_state,
+                data_device_state,
 
-            pointer_location: Point::from((0.0, 0.0)),
-            move_grab: None,
-        }, display)
+                pointer_location: Point::from((0.0, 0.0)),
+                move_grab: None,
+            },
+            display,
+        )
     }
 
-    pub fn surface_under_pointer(
-        &self,
-    ) -> Option<(Window, Point<i32, Logical>)> {
+    pub fn surface_under_pointer(&self) -> Option<(Window, Point<i32, Logical>)> {
         let position = self.pointer_location;
         self.space
             .element_under(position)
@@ -96,9 +98,7 @@ impl Oxwc {
     }
 }
 
-pub fn init_wayland_listener(
-    loop_handle: &LoopHandle<'static, Oxwc>,
-) -> OsString {
+pub fn init_wayland_listener(loop_handle: &LoopHandle<'static, Oxwc>) -> OsString {
     let listening_socket = ListeningSocketSource::new_auto().expect("failed to create socket");
     let socket_name = listening_socket.socket_name().to_os_string();
 

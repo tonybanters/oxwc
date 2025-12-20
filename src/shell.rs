@@ -4,21 +4,21 @@ use smithay::{
     delegate_compositor, delegate_data_device, delegate_output, delegate_seat, delegate_shm,
     delegate_xdg_shell,
     desktop::Window,
-    input::{pointer::CursorImageStatus, Seat, SeatHandler, SeatState},
+    input::{Seat, SeatHandler, SeatState, pointer::CursorImageStatus},
     reexports::wayland_server::protocol::{wl_buffer, wl_seat, wl_surface::WlSurface},
     utils::Serial,
     wayland::{
         buffer::BufferHandler,
         compositor::{
-            get_parent, is_sync_subsurface, CompositorClientState, CompositorHandler,
-            CompositorState,
+            CompositorClientState, CompositorHandler, CompositorState, get_parent,
+            is_sync_subsurface,
         },
         output::OutputHandler,
         selection::{
+            SelectionHandler,
             data_device::{
                 ClientDndGrabHandler, DataDeviceHandler, DataDeviceState, ServerDndGrabHandler,
             },
-            SelectionHandler,
         },
         shell::xdg::{
             PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
@@ -32,7 +32,10 @@ impl CompositorHandler for Oxwc {
         &mut self.compositor_state
     }
 
-    fn client_compositor_state<'a>(&self, client: &'a smithay::reexports::wayland_server::Client) -> &'a CompositorClientState {
+    fn client_compositor_state<'a>(
+        &self,
+        client: &'a smithay::reexports::wayland_server::Client,
+    ) -> &'a CompositorClientState {
         &client.get_data::<ClientState>().unwrap().compositor_state
     }
 
@@ -86,7 +89,13 @@ impl XdgShellHandler for Oxwc {
 
     fn grab(&mut self, _surface: PopupSurface, _seat: wl_seat::WlSeat, _serial: Serial) {}
 
-    fn reposition_request(&mut self, _surface: PopupSurface, _positioner: PositionerState, _token: u32) {}
+    fn reposition_request(
+        &mut self,
+        _surface: PopupSurface,
+        _positioner: PositionerState,
+        _token: u32,
+    ) {
+    }
 
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
         let window = self

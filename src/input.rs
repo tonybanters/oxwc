@@ -16,7 +16,9 @@ impl Oxwc {
         match event {
             InputEvent::Keyboard { event } => self.handle_keyboard_event::<B>(event),
             InputEvent::PointerMotion { event } => self.handle_pointer_motion::<B>(event),
-            InputEvent::PointerMotionAbsolute { event } => self.handle_pointer_motion_absolute::<B>(event),
+            InputEvent::PointerMotionAbsolute { event } => {
+                self.handle_pointer_motion_absolute::<B>(event)
+            }
             InputEvent::PointerButton { event } => self.handle_pointer_button::<B>(event),
             InputEvent::PointerAxis { event } => self.handle_pointer_axis::<B>(event),
             _ => {}
@@ -148,39 +150,50 @@ impl Oxwc {
         let keyboard = self.seat.get_keyboard().expect("keyboard not initialized");
         let alt_held = keyboard.modifier_state().alt;
 
-        if ButtonState::Pressed == button_state && button == left_button && alt_held
-            && let Some((window, _)) = self.surface_under_pointer() {
-                let window_location = self.space.element_geometry(&window)
-                    .map(|geo| geo.loc)
-                    .unwrap_or_default();
-                self.move_grab = Some(MoveGrab {
-                    window: window.clone(),
-                    initial_window_location: window_location,
-                    initial_pointer_location: self.pointer_location,
-                });
-                self.space.raise_element(&window, true);
-                return;
-            }
+        if ButtonState::Pressed == button_state
+            && button == left_button
+            && alt_held
+            && let Some((window, _)) = self.surface_under_pointer()
+        {
+            let window_location = self
+                .space
+                .element_geometry(&window)
+                .map(|geo| geo.loc)
+                .unwrap_or_default();
+            self.move_grab = Some(MoveGrab {
+                window: window.clone(),
+                initial_window_location: window_location,
+                initial_pointer_location: self.pointer_location,
+            });
+            self.space.raise_element(&window, true);
+            return;
+        }
 
-        if ButtonState::Released == button_state && button == left_button && self.move_grab.is_some() {
+        if ButtonState::Released == button_state
+            && button == left_button
+            && self.move_grab.is_some()
+        {
             self.move_grab = None;
             return;
         }
 
         if ButtonState::Pressed == button_state
-            && let Some((window, _)) = self.surface_under_pointer() {
-                self.space.raise_element(&window, true);
+            && let Some((window, _)) = self.surface_under_pointer()
+        {
+            self.space.raise_element(&window, true);
 
-                keyboard.set_focus(
-                    self,
-                    Some(window.toplevel().expect("toplevel").wl_surface().clone()),
-                    serial,
-                );
+            keyboard.set_focus(
+                self,
+                Some(window.toplevel().expect("toplevel").wl_surface().clone()),
+                serial,
+            );
 
-                self.space.elements().for_each(|window| {
-                    window.toplevel().map(|toplevel| toplevel.send_pending_configure());
-                });
-            }
+            self.space.elements().for_each(|window| {
+                window
+                    .toplevel()
+                    .map(|toplevel| toplevel.send_pending_configure());
+            });
+        }
 
         let pointer = self.pointer();
         pointer.button(
@@ -196,12 +209,12 @@ impl Oxwc {
     }
 
     fn handle_pointer_axis<B: InputBackend>(&mut self, event: B::PointerAxisEvent) {
-        let horizontal_amount = event.amount(Axis::Horizontal).unwrap_or_else(|| {
-            event.amount_v120(Axis::Horizontal).unwrap_or(0.0) * 3.0 / 120.0
-        });
-        let vertical_amount = event.amount(Axis::Vertical).unwrap_or_else(|| {
-            event.amount_v120(Axis::Vertical).unwrap_or(0.0) * 3.0 / 120.0
-        });
+        let horizontal_amount = event
+            .amount(Axis::Horizontal)
+            .unwrap_or_else(|| event.amount_v120(Axis::Horizontal).unwrap_or(0.0) * 3.0 / 120.0);
+        let vertical_amount = event
+            .amount(Axis::Vertical)
+            .unwrap_or_else(|| event.amount_v120(Axis::Vertical).unwrap_or(0.0) * 3.0 / 120.0);
         let horizontal_amount_discrete = event.amount_v120(Axis::Horizontal);
         let vertical_amount_discrete = event.amount_v120(Axis::Vertical);
 
@@ -273,7 +286,11 @@ fn handle_keybinding(state: &mut Oxwc, modifiers: &ModifiersState, keysym: Keysy
             let keyboard = state.seat.get_keyboard().unwrap();
             if let Some(focused_surface) = keyboard.current_focus() {
                 for window in state.space.elements() {
-                    if window.toplevel().map(|t| t.wl_surface() == &focused_surface).unwrap_or(false) {
+                    if window
+                        .toplevel()
+                        .map(|t| t.wl_surface() == &focused_surface)
+                        .unwrap_or(false)
+                    {
                         window.toplevel().unwrap().send_close();
                         break;
                     }
