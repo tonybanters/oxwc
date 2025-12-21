@@ -1,11 +1,11 @@
 use smithay::{
     desktop::{Space, Window},
-    input::{pointer::PointerHandle, Seat, SeatState},
+    input::{Seat, SeatState, pointer::PointerHandle},
     reexports::{
         calloop::LoopHandle,
         wayland_server::{
-            backend::{ClientData, ClientId, DisconnectReason},
             Display, DisplayHandle,
+            backend::{ClientData, ClientId, DisconnectReason},
         },
     },
     utils::{Logical, Point},
@@ -21,8 +21,8 @@ use smithay::{
 use std::{ffi::OsString, sync::Arc};
 
 use crate::{
-    layout::{GapConfig, LayoutBox, LayoutType},
     CompositorError,
+    layout::{GapConfig, LayoutBox, LayoutType},
 };
 
 pub struct Oxwc {
