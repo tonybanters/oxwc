@@ -1,23 +1,23 @@
 use oxwc::{
+    state::{init_wayland_listener, Oxwc},
     CompositorError, Result,
-    state::{Oxwc, init_wayland_listener},
 };
 use smithay::{
     backend::{
         renderer::{
-            Color32F, Frame, Renderer as _,
             damage::OutputDamageTracker,
             element::{
-                AsRenderElements, Element, RenderElement, surface::WaylandSurfaceRenderElement,
+                surface::WaylandSurfaceRenderElement, AsRenderElements, Element, RenderElement,
             },
             glow::GlowRenderer,
+            Color32F, Frame, Renderer as _,
         },
         winit::{self, WinitEvent},
     },
     reexports::{
         calloop::{
-            EventLoop,
             timer::{TimeoutAction, Timer},
+            EventLoop,
         },
         wayland_server::Display,
     },

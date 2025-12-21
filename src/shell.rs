@@ -82,6 +82,7 @@ impl XdgShellHandler for Oxwc {
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = Window::new_wayland_window(surface.clone());
         self.space.map_element(window, (0, 0), false);
+        self.apply_layout().ok();
         surface.send_configure();
     }
 

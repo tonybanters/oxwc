@@ -1,11 +1,11 @@
 use smithay::{
     desktop::{Space, Window},
-    input::{Seat, SeatState, pointer::PointerHandle},
+    input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
         calloop::LoopHandle,
         wayland_server::{
-            Display, DisplayHandle,
             backend::{ClientData, ClientId, DisconnectReason},
+            Display, DisplayHandle,
         },
     },
     utils::{Logical, Point},
@@ -20,6 +20,11 @@ use smithay::{
 };
 use std::{ffi::OsString, sync::Arc};
 
+use crate::{
+    layout::{GapConfig, LayoutBox, LayoutType},
+    CompositorError,
+};
+
 pub struct Oxwc {
     pub display_handle: DisplayHandle,
     pub loop_handle: LoopHandle<'static, Oxwc>,
@@ -28,6 +33,7 @@ pub struct Oxwc {
     pub space: Space<Window>,
     pub seat: Seat<Self>,
     pub seat_state: SeatState<Self>,
+    pub layout: LayoutBox,
 
     pub compositor_state: CompositorState,
     pub xdg_shell_state: XdgShellState,
@@ -57,6 +63,8 @@ impl Oxwc {
         let shm_state = ShmState::new::<Self>(&display_handle, vec![]);
         let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&display_handle);
         let data_device_state = DataDeviceState::new::<Self>(&display_handle);
+        // TODO: Get a brain
+        let layout = LayoutType::from_str("tiling").unwrap().new();
 
         let mut seat_state = SeatState::new();
         let seat_name = "seat0".to_string();
@@ -70,6 +78,7 @@ impl Oxwc {
                 running: true,
 
                 space,
+                layout,
                 seat,
                 seat_state,
 
@@ -84,6 +93,56 @@ impl Oxwc {
             },
             display,
         )
+    }
+
+    pub fn apply_layout(&mut self) -> Result<(), CompositorError> {
+        let windows: Vec<smithay::desktop::Window> = self.space.elements().cloned().collect();
+        if windows.is_empty() {
+            return Ok(());
+        }
+
+        let output = self
+            .space
+            .outputs()
+            .next()
+            .cloned()
+            .ok_or_else(|| CompositorError::Backend("no output".into()))?;
+
+        let out_geo = self
+            .space
+            .output_geometry(&output)
+            .ok_or_else(|| CompositorError::Backend("no output geometry".into()))?;
+
+        let gaps = GapConfig {
+            outer_horizontal: 20,
+            outer_vertical: 20,
+            inner_horizontal: 10,
+            inner_vertical: 10,
+        };
+
+        let master_factor: f32 = 0.55;
+        let num_master: i32 = 1;
+        let smartgaps_enabled: bool = true;
+
+        let geometries = self.layout.arrange(
+            &windows,
+            out_geo.size.w as u32,
+            out_geo.size.h as u32,
+            &gaps,
+            master_factor,
+            num_master,
+            smartgaps_enabled,
+        );
+
+        for (window, geom) in windows.into_iter().zip(geometries.into_iter()) {
+            let loc = Point::<i32, Logical>::from((
+                out_geo.loc.x + geom.x_coordinate,
+                out_geo.loc.y + geom.y_coordinate,
+            ));
+            self.space.map_element(window, loc, false);
+        }
+
+        Ok(())
     }
 
     pub fn surface_under_pointer(&self) -> Option<(Window, Point<i32, Logical>)> {
