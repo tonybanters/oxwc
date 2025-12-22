@@ -898,7 +898,6 @@ name = "oxwc"
 version = "0.1.0"
 dependencies = [
  "smithay",
- "thiserror 2.0.17",
  "tracing",
  "tracing-subscriber",
 ]
