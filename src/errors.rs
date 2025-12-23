@@ -1,18 +1,38 @@
-use thiserror::Error;
+use std::error::Error;
+use std::fmt;
 
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum CompositorError {
-    #[error("backend initialization failed: {0}")]
     Backend(String),
-
-    #[error("renderer creation failed: {0}")]
     Renderer(String),
-
-    #[error("wayland socket creation failed: {0}")]
-    Socket(#[from] std::io::Error),
-
-    #[error("event loop error: {0}")]
+    Socket(std::io::Error),
     EventLoop(String),
+}
+
+impl fmt::Display for CompositorError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Backend(msg) => write!(f, "backend initialization failed: {msg}"),
+            Self::Renderer(msg) => write!(f, "renderer creation failed: {msg}"),
+            Self::Socket(err) => write!(f, "wayland socket creation failed: {err}"),
+            Self::EventLoop(msg) => write!(f, "event loop error: {msg}"),
+        }
+    }
+}
+
+impl Error for CompositorError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Socket(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
+impl From<std::io::Error> for CompositorError {
+    fn from(err: std::io::Error) -> Self {
+        Self::Socket(err)
+    }
 }
 
 pub type Result<T> = std::result::Result<T, CompositorError>;
