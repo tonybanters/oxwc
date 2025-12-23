@@ -43,16 +43,16 @@ fn main() -> Result<()> {
     let (mut winit_backend, mut winit_event_loop) =
         winit::init::<GlowRenderer>().map_err(|e| CompositorError::Backend(format!("{:?}", e)))?;
 
+    let window_size = winit_backend.window_size();
+    let winit_output = state.add_output("winit".to_string(), window_size.w, window_size.h);
+
+    let _damage_tracker = OutputDamageTracker::from_output(&winit_output);
+
     unsafe { std::env::set_var("WAYLAND_DISPLAY", &socket_name) };
 
     if let Some(cmd) = spawn_cmd {
         std::process::Command::new(&cmd).spawn().ok();
     }
-
-    let window_size = winit_backend.window_size();
-    let winit_output = state.add_output("winit".to_string(), window_size.w, window_size.h);
-
-    let _damage_tracker = OutputDamageTracker::from_output(&winit_output);
 
     state
         .seat
