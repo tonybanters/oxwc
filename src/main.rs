@@ -33,10 +33,10 @@ fn main() -> Result<()> {
     let mut event_loop: EventLoop<Oxwc> =
         EventLoop::try_new().map_err(|e| CompositorError::EventLoop(e.to_string()))?;
 
-    let display: Display<Oxwc> =
+    let mut display: Display<Oxwc> =
         Display::new().map_err(|e| CompositorError::Backend(e.to_string()))?;
 
-    let (mut state, mut display) = Oxwc::new(display, event_loop.handle());
+    let mut state = Oxwc::new(&display, event_loop.handle());
 
     let socket_name = init_wayland_listener(&event_loop.handle());
 

@@ -35,6 +35,7 @@ pub struct Oxwc {
     pub seat_state: SeatState<Self>,
     pub layout: LayoutBox,
 
+    // smithay state
     pub compositor_state: CompositorState,
     pub xdg_shell_state: XdgShellState,
     pub shm_state: ShmState,
@@ -52,10 +53,7 @@ pub struct MoveGrab {
 }
 
 impl Oxwc {
-    pub fn new(
-        display: Display<Self>,
-        loop_handle: LoopHandle<'static, Oxwc>,
-    ) -> (Self, Display<Self>) {
+    pub fn new(display: &Display<Self>, loop_handle: LoopHandle<'static, Oxwc>) -> Self {
         let display_handle = display.handle();
 
         let compositor_state = CompositorState::new::<Self>(&display_handle);
@@ -71,28 +69,25 @@ impl Oxwc {
         let seat = seat_state.new_wl_seat(&display_handle, seat_name);
         let space = Space::default();
 
-        (
-            Self {
-                display_handle,
-                loop_handle,
-                running: true,
+        Self {
+            display_handle,
+            loop_handle,
+            running: true,
 
-                space,
-                layout,
-                seat,
-                seat_state,
+            space,
+            layout,
+            seat,
+            seat_state,
 
-                compositor_state,
-                xdg_shell_state,
-                shm_state,
-                output_manager_state,
-                data_device_state,
+            compositor_state,
+            xdg_shell_state,
+            shm_state,
+            output_manager_state,
+            data_device_state,
 
-                pointer_location: Point::from((0.0, 0.0)),
-                move_grab: None,
-            },
-            display,
-        )
+            pointer_location: Point::from((0.0, 0.0)),
+            move_grab: None,
+        }
     }
 
     pub fn apply_layout(&mut self) -> Result<(), CompositorError> {
