@@ -275,7 +275,7 @@ fn handle_keybinding(state: &mut Oxwc, modifiers: &ModifiersState, keysym: Keysy
 
     match keysym {
         Keysym::Escape => {
-            state.running = false;
+            state.loop_signal.stop();
             true
         }
         Keysym::Return => {

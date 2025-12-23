@@ -2,7 +2,7 @@ use smithay::{
     desktop::{Space, Window},
     input::{Seat, SeatState, pointer::PointerHandle},
     reexports::{
-        calloop::LoopHandle,
+        calloop::{Interest, LoopHandle, LoopSignal, Mode, PostAction, generic::Generic},
         wayland_server::{
             Display, DisplayHandle,
             backend::{ClientData, ClientId, DisconnectReason},
@@ -28,12 +28,12 @@ use crate::{
 pub struct Oxwc {
     pub display_handle: DisplayHandle,
     pub loop_handle: LoopHandle<'static, Oxwc>,
-    pub running: bool,
+    pub loop_signal: LoopSignal,
 
     pub space: Space<Window>,
     pub seat: Seat<Self>,
-    pub seat_state: SeatState<Self>,
     pub layout: LayoutBox,
+    pub socket_name: OsString,
 
     // smithay state
     pub compositor_state: CompositorState,
@@ -41,6 +41,7 @@ pub struct Oxwc {
     pub shm_state: ShmState,
     pub output_manager_state: OutputManagerState,
     pub data_device_state: DataDeviceState,
+    pub seat_state: SeatState<Self>,
 
     pub pointer_location: Point<f64, Logical>,
     pub move_grab: Option<MoveGrab>,
@@ -53,7 +54,11 @@ pub struct MoveGrab {
 }
 
 impl Oxwc {
-    pub fn new(display: &Display<Self>, loop_handle: LoopHandle<'static, Oxwc>) -> Self {
+    pub fn new(
+        display: Display<Self>,
+        loop_handle: LoopHandle<'static, Oxwc>,
+        loop_signal: LoopSignal,
+    ) -> Self {
         let display_handle = display.handle();
 
         let compositor_state = CompositorState::new::<Self>(&display_handle);
@@ -61,29 +66,36 @@ impl Oxwc {
         let shm_state = ShmState::new::<Self>(&display_handle, vec![]);
         let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&display_handle);
         let data_device_state = DataDeviceState::new::<Self>(&display_handle);
+        let mut seat_state = SeatState::new();
+
+        let mut seat = seat_state.new_wl_seat(&display_handle, "winit");
+        seat.add_keyboard(Default::default(), 200, 25)
+            .expect("failed to add keyboard");
+        seat.add_pointer();
+
+        let space = Space::default();
+
+        let socket_name = init_wayland_listener(display, &loop_handle);
+
         // TODO: Get a brain
         let layout = LayoutType::from_str("tiling").unwrap().new();
-
-        let mut seat_state = SeatState::new();
-        let seat_name = "seat0".to_string();
-        let seat = seat_state.new_wl_seat(&display_handle, seat_name);
-        let space = Space::default();
 
         Self {
             display_handle,
             loop_handle,
-            running: true,
+            loop_signal,
 
             space,
             layout,
             seat,
-            seat_state,
+            socket_name,
 
             compositor_state,
             xdg_shell_state,
             shm_state,
             output_manager_state,
             data_device_state,
+            seat_state,
 
             pointer_location: Point::from((0.0, 0.0)),
             move_grab: None,
@@ -152,7 +164,10 @@ impl Oxwc {
     }
 }
 
-pub fn init_wayland_listener(loop_handle: &LoopHandle<'static, Oxwc>) -> OsString {
+pub fn init_wayland_listener(
+    display: Display<Oxwc>,
+    loop_handle: &LoopHandle<'static, Oxwc>,
+) -> OsString {
     let listening_socket = ListeningSocketSource::new_auto().expect("failed to create socket");
     let socket_name = listening_socket.socket_name().to_os_string();
 
@@ -164,6 +179,19 @@ pub fn init_wayland_listener(loop_handle: &LoopHandle<'static, Oxwc>) -> OsStrin
                 .expect("failed to insert client");
         })
         .expect("failed to init wayland listener");
+
+    loop_handle
+        .insert_source(
+            Generic::new(display, Interest::READ, Mode::Level),
+            move |_, display, state| {
+                // Safety: we don't drop the display
+                unsafe {
+                    display.get_mut().dispatch_clients(state).unwrap();
+                }
+                Ok(PostAction::Continue)
+            },
+        )
+        .expect("failed to init display event source");
 
     socket_name
 }
