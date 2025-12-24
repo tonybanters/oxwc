@@ -2,7 +2,11 @@ use oxwc::{CompositorError, Result, state::Oxwc};
 use smithay::reexports::{calloop::EventLoop, wayland_server::Display};
 
 fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    if let Ok(env_filter) = tracing_subscriber::EnvFilter::try_from_default_env() {
+        tracing_subscriber::fmt().with_env_filter(env_filter).init();
+    } else {
+        tracing_subscriber::fmt().init();
+    }
 
     let mut event_loop: EventLoop<Oxwc> =
         EventLoop::try_new().map_err(|e| CompositorError::EventLoop(e.to_string()))?;
