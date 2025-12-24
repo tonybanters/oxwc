@@ -26,6 +26,7 @@
           pkgs.cargo
           pkgs.clippy
           pkgs.foot
+          pkgs.westonLite # weston-terminal
           pkgs.just
           pkgs.pkg-config
         ];
@@ -35,7 +36,7 @@
 
         env = {
           RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.wayland pkgs.libxkbcommon pkgs.libGL];
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.wayland pkgs.libGL];
         };
       };
     });
