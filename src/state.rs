@@ -1,11 +1,12 @@
 use smithay::{
-    desktop::{Space, Window},
+    desktop::{Space, Window, WindowSurfaceType},
     input::{Seat, SeatState, pointer::PointerHandle},
     reexports::{
         calloop::{Interest, LoopHandle, LoopSignal, Mode, PostAction, generic::Generic},
         wayland_server::{
             Display, DisplayHandle,
             backend::{ClientData, ClientId, DisconnectReason},
+            protocol::wl_surface::WlSurface,
         },
     },
     utils::{Logical, Point},
@@ -152,11 +153,15 @@ impl Oxwc {
         Ok(())
     }
 
-    pub fn surface_under_pointer(&self) -> Option<(Window, Point<i32, Logical>)> {
+    pub fn surface_under_pointer(&self) -> Option<(WlSurface, Point<f64, Logical>)> {
         let position = self.pointer_location;
         self.space
             .element_under(position)
-            .map(|(window, location)| (window.clone(), location))
+            .and_then(|(window, location)| {
+                window
+                    .surface_under(position - location.to_f64(), WindowSurfaceType::ALL)
+                    .map(|(s, p)| (s, (p + location).to_f64()))
+            })
     }
 
     pub fn pointer(&self) -> PointerHandle<Self> {

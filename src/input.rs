@@ -75,12 +75,7 @@ impl Oxwc {
 
         pointer.motion(
             self,
-            under.map(|(window, location)| {
-                (
-                    window.toplevel().expect("toplevel").wl_surface().clone(),
-                    location.to_f64(),
-                )
-            }),
+            under,
             &MotionEvent {
                 location: self.pointer_location,
                 serial,
@@ -126,12 +121,7 @@ impl Oxwc {
 
         pointer.motion(
             self,
-            under.map(|(window, location)| {
-                (
-                    window.toplevel().expect("toplevel").wl_surface().clone(),
-                    location.to_f64(),
-                )
-            }),
+            under,
             &MotionEvent {
                 location: self.pointer_location,
                 serial,
@@ -153,7 +143,10 @@ impl Oxwc {
         if ButtonState::Pressed == button_state
             && button == left_button
             && alt_held
-            && let Some((window, _)) = self.surface_under_pointer()
+            && let Some((window, _)) = self
+                .space
+                .element_under(self.pointer_location)
+                .map(|(w, l)| (w.clone(), l))
         {
             let window_location = self
                 .space
@@ -178,7 +171,10 @@ impl Oxwc {
         }
 
         if ButtonState::Pressed == button_state
-            && let Some((window, _)) = self.surface_under_pointer()
+            && let Some((window, _)) = self
+                .space
+                .element_under(self.pointer_location)
+                .map(|(w, l)| (w.clone(), l))
         {
             self.space.raise_element(&window, true);
 
