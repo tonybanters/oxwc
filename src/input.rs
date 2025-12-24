@@ -275,7 +275,7 @@ fn handle_keybinding(state: &mut Oxwc, modifiers: &ModifiersState, keysym: Keysy
             true
         }
         Keysym::Return => {
-            std::process::Command::new("foot").spawn().ok();
+            std::process::Command::new("weston-terminal").spawn().ok();
             true
         }
         Keysym::q => {
