@@ -35,6 +35,7 @@ pub struct Oxwc {
     pub seat: Seat<Self>,
     pub layout: LayoutBox,
     pub socket_name: OsString,
+    pub start_time: std::time::Instant,
 
     // smithay state
     pub compositor_state: CompositorState,
@@ -61,6 +62,8 @@ impl Oxwc {
         loop_handle: LoopHandle<'static, Oxwc>,
         loop_signal: LoopSignal,
     ) -> Self {
+        let start_time = std::time::Instant::now();
+
         let display_handle = display.handle();
 
         // State
@@ -93,6 +96,7 @@ impl Oxwc {
             layout,
             seat,
             socket_name,
+            start_time,
 
             compositor_state,
             xdg_shell_state,

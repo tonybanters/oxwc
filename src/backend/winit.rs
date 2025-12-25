@@ -92,10 +92,12 @@ pub fn init_winit(
                     .expect("failed to submit damage");
 
                 state.space.elements().for_each(|window| {
-                    // TODO: Track start_time in state
-                    window.send_frame(&output, Duration::ZERO, Some(Duration::ZERO), |_, _| {
-                        Some(output.clone())
-                    });
+                    window.send_frame(
+                        &output,
+                        state.start_time.elapsed(),
+                        Some(Duration::ZERO),
+                        |_, _| Some(output.clone()),
+                    );
                 });
 
                 state.space.refresh();
