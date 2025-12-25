@@ -128,9 +128,8 @@ impl PointerGrab<Oxwc> for ResizeSurfaceGrab {
         };
 
         self.last_window_size = Size::from((
-            // TODO: use clamp
-            new_window_width.max(min_width).min(max_width),
-            new_window_height.max(min_height).min(max_height),
+            new_window_width.clamp(min_width, max_width),
+            new_window_height.clamp(min_height, max_height),
         ));
 
         let xdg = self.window.toplevel().unwrap();
