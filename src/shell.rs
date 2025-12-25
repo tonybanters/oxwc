@@ -5,6 +5,7 @@ use smithay::desktop::{PopupManager, Space};
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
 use smithay::utils::Rectangle;
 use smithay::wayland::compositor;
+use smithay::wayland::selection::data_device::set_data_device_focus;
 use smithay::wayland::shell::xdg::XdgToplevelSurfaceData;
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
@@ -224,7 +225,11 @@ impl SeatHandler for Oxwc {
         &mut self.seat_state
     }
 
-    fn focus_changed(&mut self, _seat: &Seat<Self>, _focused: Option<&WlSurface>) {}
+    fn focus_changed(&mut self, seat: &Seat<Self>, focused: Option<&WlSurface>) {
+        let dh = &self.display_handle;
+        let client = focused.and_then(|s| dh.get_client(s.id()).ok());
+        set_data_device_focus(dh, seat, client);
+    }
 
     fn cursor_image(&mut self, _seat: &Seat<Self>, _image: CursorImageStatus) {}
 }
