@@ -1,5 +1,5 @@
 use smithay::{
-    desktop::{Space, Window, WindowSurfaceType},
+    desktop::{PopupManager, Space, Window, WindowSurfaceType},
     input::{Seat, SeatState, pointer::PointerHandle},
     reexports::{
         calloop::{Interest, LoopHandle, LoopSignal, Mode, PostAction, generic::Generic},
@@ -43,6 +43,7 @@ pub struct Oxwc {
     pub output_manager_state: OutputManagerState,
     pub data_device_state: DataDeviceState,
     pub seat_state: SeatState<Self>,
+    pub popups: PopupManager,
 
     pub pointer_location: Point<f64, Logical>,
     pub move_grab: Option<MoveGrab>,
@@ -62,11 +63,13 @@ impl Oxwc {
     ) -> Self {
         let display_handle = display.handle();
 
+        // State
         let compositor_state = CompositorState::new::<Self>(&display_handle);
         let xdg_shell_state = XdgShellState::new::<Self>(&display_handle);
         let shm_state = ShmState::new::<Self>(&display_handle, vec![]);
         let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&display_handle);
         let data_device_state = DataDeviceState::new::<Self>(&display_handle);
+        let popups = PopupManager::default();
         let mut seat_state = SeatState::new();
 
         let mut seat = seat_state.new_wl_seat(&display_handle, "winit");
@@ -96,6 +99,7 @@ impl Oxwc {
             shm_state,
             output_manager_state,
             data_device_state,
+            popups,
             seat_state,
 
             pointer_location: Point::from((0.0, 0.0)),

@@ -1,11 +1,18 @@
+use crate::grabs::MoveSurfaceGrab;
 use crate::state::{ClientState, Oxwc};
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_data_device, delegate_output, delegate_seat, delegate_shm,
     delegate_xdg_shell,
-    desktop::Window,
-    input::{Seat, SeatHandler, SeatState, pointer::CursorImageStatus},
-    reexports::wayland_server::protocol::{wl_buffer, wl_seat, wl_surface::WlSurface},
+    desktop::{PopupKind, Window, find_popup_root_surface, get_popup_toplevel_coords},
+    input::{
+        Seat, SeatHandler, SeatState,
+        pointer::{CursorImageStatus, Focus, GrabStartData as PointerGrabStartData},
+    },
+    reexports::wayland_server::{
+        Resource,
+        protocol::{wl_buffer, wl_seat, wl_surface::WlSurface},
+    },
     utils::Serial,
     wayland::{
         buffer::BufferHandler,
@@ -63,6 +70,7 @@ impl CompositorHandler for Oxwc {
         }
     }
 }
+delegate_compositor!(Oxwc);
 
 impl BufferHandler for Oxwc {
     fn buffer_destroyed(&mut self, _buffer: &wl_buffer::WlBuffer) {}
@@ -73,6 +81,7 @@ impl ShmHandler for Oxwc {
         &self.shm_state
     }
 }
+delegate_shm!(Oxwc);
 
 impl XdgShellHandler for Oxwc {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
@@ -86,16 +95,57 @@ impl XdgShellHandler for Oxwc {
         surface.send_configure();
     }
 
-    fn new_popup(&mut self, _surface: PopupSurface, _positioner: PositionerState) {}
+    fn new_popup(&mut self, surface: PopupSurface, _positioner: PositionerState) {
+        self.unconstrain_popup(&surface);
+        if let Err(err) = self.popups.track_popup(PopupKind::Xdg(surface)) {
+            tracing::warn!("error while tracking popup: {err:?}");
+        }
+    }
 
     fn grab(&mut self, _surface: PopupSurface, _seat: wl_seat::WlSeat, _serial: Serial) {}
 
+    // TODO: Test this when you implement resize request
+    // as it should be able to trigger this as well.
     fn reposition_request(
         &mut self,
-        _surface: PopupSurface,
-        _positioner: PositionerState,
-        _token: u32,
+        surface: PopupSurface,
+        positioner: PositionerState,
+        token: u32,
     ) {
+        surface.with_pending_state(|state| {
+            let geometry = positioner.get_geometry();
+            state.geometry = geometry;
+            state.positioner = positioner;
+        });
+        self.unconstrain_popup(&surface);
+        surface.send_repositioned(token);
+    }
+
+    fn move_request(&mut self, surface: ToplevelSurface, seat: wl_seat::WlSeat, serial: Serial) {
+        let seat = Seat::from_resource(&seat).unwrap();
+
+        let wl_surface = surface.wl_surface();
+
+        if let Some(start_data) = check_grab(&seat, wl_surface, serial) {
+            let pointer = seat.get_pointer().unwrap();
+
+            let window = self
+                .space
+                .elements()
+                .find(|w| w.toplevel().unwrap().wl_surface() == wl_surface)
+                .unwrap()
+                .clone();
+
+            let initial_window_location = self.space.element_location(&window).unwrap();
+
+            let grab = MoveSurfaceGrab {
+                start_data,
+                window,
+                initial_window_location,
+            };
+
+            pointer.set_grab(self, grab, serial, Focus::Clear);
+        }
     }
 
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
@@ -115,6 +165,7 @@ impl XdgShellHandler for Oxwc {
         }
     }
 }
+delegate_xdg_shell!(Oxwc);
 
 impl SeatHandler for Oxwc {
     type KeyboardFocus = WlSurface;
@@ -129,6 +180,7 @@ impl SeatHandler for Oxwc {
 
     fn cursor_image(&mut self, _seat: &Seat<Self>, _image: CursorImageStatus) {}
 }
+delegate_seat!(Oxwc);
 
 impl SelectionHandler for Oxwc {
     type SelectionUserData = ();
@@ -139,15 +191,63 @@ impl DataDeviceHandler for Oxwc {
         &self.data_device_state
     }
 }
+delegate_data_device!(Oxwc);
 
 impl ClientDndGrabHandler for Oxwc {}
 impl ServerDndGrabHandler for Oxwc {}
 
 impl OutputHandler for Oxwc {}
-
-delegate_compositor!(Oxwc);
-delegate_shm!(Oxwc);
-delegate_xdg_shell!(Oxwc);
-delegate_seat!(Oxwc);
-delegate_data_device!(Oxwc);
 delegate_output!(Oxwc);
+
+impl Oxwc {
+    pub fn unconstrain_popup(&self, popup: &PopupSurface) {
+        let Ok(root) = find_popup_root_surface(&PopupKind::Xdg(popup.clone())) else {
+            return;
+        };
+
+        let Some(window) = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().unwrap().wl_surface() == &root)
+        else {
+            return;
+        };
+
+        let output = self.space.outputs().next().unwrap();
+        let output_geo = self.space.output_geometry(output).unwrap();
+        let window_geo = self.space.element_geometry(window).unwrap();
+
+        // The target geometry for the positioner should be relative to its parent's geometry, so
+        // we will compute that here.
+        let mut target = output_geo;
+        target.loc -= get_popup_toplevel_coords(&PopupKind::Xdg(popup.clone()));
+        target.loc -= window_geo.loc;
+
+        popup.with_pending_state(|state| {
+            state.geometry = state.positioner.get_unconstrained_geometry(target);
+        });
+    }
+}
+
+fn check_grab(
+    seat: &Seat<Oxwc>,
+    surface: &WlSurface,
+    serial: Serial,
+) -> Option<PointerGrabStartData<Oxwc>> {
+    let pointer = seat.get_pointer()?;
+
+    // Check that this surface has a click grab.
+    if !pointer.has_grab(serial) {
+        return None;
+    }
+
+    let start_data = pointer.grab_start_data()?;
+
+    let (focus, _) = start_data.focus.as_ref()?;
+    // If the focus was for a different surface, ignore the request.
+    if !focus.id().same_client_as(&surface.id()) {
+        return None;
+    }
+
+    Some(start_data)
+}
