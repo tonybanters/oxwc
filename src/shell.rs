@@ -1,5 +1,8 @@
-use crate::grabs::MoveSurfaceGrab;
+use crate::grabs::move_grab::MoveSurfaceGrab;
+use crate::grabs::resize_grab::{self, ResizeSurfaceGrab};
 use crate::state::{ClientState, Oxwc};
+use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
+use smithay::utils::Rectangle;
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_data_device, delegate_output, delegate_seat, delegate_shm,
@@ -68,6 +71,11 @@ impl CompositorHandler for Oxwc {
                 window.on_commit();
             }
         }
+
+        // TODO: handle popup commits
+        // xdg_shell::handle_commit???
+
+        resize_grab::handle_commit(&mut self.space, surface);
     }
 }
 delegate_compositor!(Oxwc);
@@ -123,7 +131,6 @@ impl XdgShellHandler for Oxwc {
 
     fn move_request(&mut self, surface: ToplevelSurface, seat: wl_seat::WlSeat, serial: Serial) {
         let seat = Seat::from_resource(&seat).unwrap();
-
         let wl_surface = surface.wl_surface();
 
         if let Some(start_data) = check_grab(&seat, wl_surface, serial) {
@@ -143,6 +150,46 @@ impl XdgShellHandler for Oxwc {
                 window,
                 initial_window_location,
             };
+
+            pointer.set_grab(self, grab, serial, Focus::Clear);
+        }
+    }
+
+    fn resize_request(
+        &mut self,
+        surface: ToplevelSurface,
+        seat: wl_seat::WlSeat,
+        serial: Serial,
+        edges: xdg_toplevel::ResizeEdge,
+    ) {
+        let seat = Seat::from_resource(&seat).unwrap();
+        let wl_surface = surface.wl_surface();
+
+        if let Some(start_data) = check_grab(&seat, wl_surface, serial) {
+            let pointer = seat.get_pointer().unwrap();
+
+            let window = self
+                .space
+                .elements()
+                .find(|w| w.toplevel().unwrap().wl_surface() == wl_surface)
+                .unwrap()
+                .clone();
+
+            let initial_window_location = self.space.element_location(&window).unwrap();
+            let initial_window_size = window.geometry().size;
+
+            surface.with_pending_state(|state| {
+                state.states.set(xdg_toplevel::State::Resizing);
+            });
+
+            surface.send_pending_configure();
+
+            let grab = ResizeSurfaceGrab::start(
+                start_data,
+                window,
+                edges.into(),
+                Rectangle::new(initial_window_location, initial_window_size),
+            );
 
             pointer.set_grab(self, grab, serial, Focus::Clear);
         }

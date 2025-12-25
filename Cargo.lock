@@ -897,6 +897,7 @@ dependencies = [
 name = "oxwc"
 version = "0.1.0"
 dependencies = [
+ "bitflags 2.10.0",
  "smithay",
  "tracing",
  "tracing-subscriber",
