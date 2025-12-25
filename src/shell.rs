@@ -1,8 +1,11 @@
 use crate::grabs::move_grab::MoveSurfaceGrab;
 use crate::grabs::resize_grab::{self, ResizeSurfaceGrab};
 use crate::state::{ClientState, Oxwc};
+use smithay::desktop::{PopupManager, Space};
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
 use smithay::utils::Rectangle;
+use smithay::wayland::compositor;
+use smithay::wayland::shell::xdg::XdgToplevelSurfaceData;
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_data_device, delegate_output, delegate_seat, delegate_shm,
@@ -72,9 +75,7 @@ impl CompositorHandler for Oxwc {
             }
         }
 
-        // TODO: handle popup commits
-        // xdg_shell::handle_commit???
-
+        handle_commit(&mut self.popups, &self.space, surface);
         resize_grab::handle_commit(&mut self.space, surface);
     }
 }
@@ -297,4 +298,41 @@ fn check_grab(
     }
 
     Some(start_data)
+}
+
+/// Should be called on `WlSurface::commit`
+fn handle_commit(popups: &mut PopupManager, space: &Space<Window>, surface: &WlSurface) {
+    // Handle toplevel commits.
+    if let Some(window) = space
+        .elements()
+        .find(|w| w.toplevel().unwrap().wl_surface() == surface)
+        .cloned()
+    {
+        let initial_configure_sent = compositor::with_states(surface, |states| {
+            states
+                .data_map
+                .get::<XdgToplevelSurfaceData>()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .initial_configure_sent
+        });
+
+        if !initial_configure_sent {
+            window.toplevel().unwrap().send_configure();
+        }
+    }
+
+    // Handle popup commits.
+    popups.commit(surface);
+    if let Some(popup) = popups.find_popup(surface) {
+        match &popup {
+            PopupKind::Xdg(xdg) => {
+                if !xdg.is_initial_configure_sent() {
+                    xdg.send_configure().expect("");
+                }
+            }
+            PopupKind::InputMethod(_) => {}
+        }
+    }
 }
