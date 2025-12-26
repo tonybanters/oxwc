@@ -271,10 +271,12 @@ fn handle_keybinding(state: &mut ProjectWC, modifiers: &ModifiersState, keysym: 
 
     match keysym {
         Keysym::Escape => {
+            tracing::info!("Quitting");
             state.loop_signal.stop();
             true
         }
         Keysym::Return => {
+            tracing::info!("Spawning weston-terminal");
             std::process::Command::new("weston-terminal").spawn().ok();
             true
         }
@@ -287,6 +289,7 @@ fn handle_keybinding(state: &mut ProjectWC, modifiers: &ModifiersState, keysym: 
                         .map(|t| t.wl_surface() == &focused_surface)
                         .unwrap_or(false)
                     {
+                        tracing::info!("Closing focused window");
                         window.toplevel().unwrap().send_close();
                         break;
                     }
