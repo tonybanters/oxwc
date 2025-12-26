@@ -12,7 +12,7 @@
   gitRev ? null,
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
-  pname = "oxwc";
+  pname = "projectwc";
   version = if gitRev != null then lib.substring 0 8 gitRev else "dev";
 
   src = ./.;
@@ -37,6 +37,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
     description = "Wayland compositor written in Rust using smithay";
     license = lib.licenses.gpl3Only;
     platforms = lib.platforms.linux;
-    mainProgram = "oxwc";
+    mainProgram = "projectwc";
   };
 })

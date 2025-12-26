@@ -1,4 +1,4 @@
-# oxwc (name pending)
+# projectwc (name pending)
 
 Minimal Wayland compositor built with Rust and [Smithay](https://github.com/Smithay/smithay).
 
