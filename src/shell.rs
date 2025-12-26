@@ -1,11 +1,15 @@
 use crate::grabs::move_grab::MoveSurfaceGrab;
 use crate::grabs::resize_grab::{self, ResizeSurfaceGrab};
 use crate::state::{ClientState, ProjectWC};
+use smithay::delegate_primary_selection;
 use smithay::desktop::{PopupManager, Space};
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
 use smithay::utils::Rectangle;
 use smithay::wayland::compositor;
 use smithay::wayland::selection::data_device::set_data_device_focus;
+use smithay::wayland::selection::primary_selection::{
+    PrimarySelectionHandler, PrimarySelectionState, set_primary_focus,
+};
 use smithay::wayland::shell::xdg::XdgToplevelSurfaceData;
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
@@ -228,7 +232,8 @@ impl SeatHandler for ProjectWC {
     fn focus_changed(&mut self, seat: &Seat<Self>, focused: Option<&WlSurface>) {
         let dh = &self.display_handle;
         let client = focused.and_then(|s| dh.get_client(s.id()).ok());
-        set_data_device_focus(dh, seat, client);
+        set_data_device_focus(dh, seat, client.clone());
+        set_primary_focus(dh, seat, client);
     }
 
     fn cursor_image(&mut self, _seat: &Seat<Self>, _image: CursorImageStatus) {}
@@ -251,6 +256,13 @@ impl ServerDndGrabHandler for ProjectWC {}
 
 impl OutputHandler for ProjectWC {}
 delegate_output!(ProjectWC);
+
+impl PrimarySelectionHandler for ProjectWC {
+    fn primary_selection_state(&self) -> &PrimarySelectionState {
+        &self.primary_selection_state
+    }
+}
+delegate_primary_selection!(ProjectWC);
 
 impl ProjectWC {
     pub fn unconstrain_popup(&self, popup: &PopupSurface) {

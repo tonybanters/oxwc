@@ -13,7 +13,7 @@ use smithay::{
     wayland::{
         compositor::{CompositorClientState, CompositorState},
         output::OutputManagerState,
-        selection::data_device::DataDeviceState,
+        selection::{data_device::DataDeviceState, primary_selection::PrimarySelectionState},
         shell::xdg::XdgShellState,
         shm::ShmState,
         socket::ListeningSocketSource,
@@ -45,6 +45,7 @@ pub struct ProjectWC {
     pub data_device_state: DataDeviceState,
     pub seat_state: SeatState<Self>,
     pub popups: PopupManager,
+    pub primary_selection_state: PrimarySelectionState,
 
     pub pointer_location: Point<f64, Logical>,
     pub move_grab: Option<MoveGrab>,
@@ -73,6 +74,7 @@ impl ProjectWC {
         let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&display_handle);
         let data_device_state = DataDeviceState::new::<Self>(&display_handle);
         let popups = PopupManager::default();
+        let primary_selection_state = PrimarySelectionState::new::<Self>(&display_handle);
         let mut seat_state = SeatState::new();
 
         let mut seat = seat_state.new_wl_seat(&display_handle, "winit");
@@ -103,8 +105,9 @@ impl ProjectWC {
             shm_state,
             output_manager_state,
             data_device_state,
-            popups,
             seat_state,
+            popups,
+            primary_selection_state,
 
             pointer_location: Point::from((0.0, 0.0)),
             move_grab: None,
