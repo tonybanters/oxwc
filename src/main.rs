@@ -1,4 +1,4 @@
-use projectwc::{state::ProjectWC, CompositorError, Result};
+use projectwc::{CompositorError, Result, state::ProjectWC};
 use smithay::reexports::{calloop::EventLoop, wayland_server::Display};
 
 fn main() -> Result<()> {

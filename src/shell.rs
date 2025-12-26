@@ -11,28 +11,28 @@ use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_data_device, delegate_output, delegate_seat, delegate_shm,
     delegate_xdg_shell,
-    desktop::{find_popup_root_surface, get_popup_toplevel_coords, PopupKind, Window},
+    desktop::{PopupKind, Window, find_popup_root_surface, get_popup_toplevel_coords},
     input::{
-        pointer::{CursorImageStatus, Focus, GrabStartData as PointerGrabStartData},
         Seat, SeatHandler, SeatState,
+        pointer::{CursorImageStatus, Focus, GrabStartData as PointerGrabStartData},
     },
     reexports::wayland_server::{
-        protocol::{wl_buffer, wl_seat, wl_surface::WlSurface},
         Resource,
+        protocol::{wl_buffer, wl_seat, wl_surface::WlSurface},
     },
     utils::Serial,
     wayland::{
         buffer::BufferHandler,
         compositor::{
-            get_parent, is_sync_subsurface, CompositorClientState, CompositorHandler,
-            CompositorState,
+            CompositorClientState, CompositorHandler, CompositorState, get_parent,
+            is_sync_subsurface,
         },
         output::OutputHandler,
         selection::{
+            SelectionHandler,
             data_device::{
                 ClientDndGrabHandler, DataDeviceHandler, DataDeviceState, ServerDndGrabHandler,
             },
-            SelectionHandler,
         },
         shell::xdg::{
             PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
