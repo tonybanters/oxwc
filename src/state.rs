@@ -1,12 +1,12 @@
 use smithay::{
     desktop::{PopupManager, Space, Window, WindowSurfaceType},
-    input::{Seat, SeatState, pointer::PointerHandle},
+    input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
-        calloop::{Interest, LoopHandle, LoopSignal, Mode, PostAction, generic::Generic},
+        calloop::{generic::Generic, Interest, LoopHandle, LoopSignal, Mode, PostAction},
         wayland_server::{
-            Display, DisplayHandle,
             backend::{ClientData, ClientId, DisconnectReason},
             protocol::wl_surface::WlSurface,
+            Display, DisplayHandle,
         },
     },
     utils::{Logical, Point},
@@ -22,13 +22,13 @@ use smithay::{
 use std::{ffi::OsString, sync::Arc};
 
 use crate::{
-    CompositorError,
     layout::{GapConfig, LayoutBox, LayoutType},
+    CompositorError,
 };
 
-pub struct Oxwc {
+pub struct ProjectWC {
     pub display_handle: DisplayHandle,
-    pub loop_handle: LoopHandle<'static, Oxwc>,
+    pub loop_handle: LoopHandle<'static, ProjectWC>,
     pub loop_signal: LoopSignal,
 
     pub space: Space<Window>,
@@ -55,10 +55,10 @@ pub struct MoveGrab {
     pub initial_pointer_location: Point<f64, Logical>,
 }
 
-impl Oxwc {
+impl ProjectWC {
     pub fn new(
         display: Display<Self>,
-        loop_handle: LoopHandle<'static, Oxwc>,
+        loop_handle: LoopHandle<'static, ProjectWC>,
         loop_signal: LoopSignal,
     ) -> Self {
         let display_handle = display.handle();
@@ -174,8 +174,8 @@ impl Oxwc {
 }
 
 pub fn init_wayland_listener(
-    display: Display<Oxwc>,
-    loop_handle: &LoopHandle<'static, Oxwc>,
+    display: Display<ProjectWC>,
+    loop_handle: &LoopHandle<'static, ProjectWC>,
 ) -> OsString {
     let listening_socket = ListeningSocketSource::new_auto().expect("failed to create socket");
     let socket_name = listening_socket.socket_name().to_os_string();

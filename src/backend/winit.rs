@@ -13,11 +13,11 @@ use smithay::{
     utils::{Rectangle, Transform},
 };
 
-use crate::{CompositorError, Oxwc};
+use crate::{CompositorError, ProjectWC};
 
 pub fn init_winit(
-    event_loop: &mut EventLoop<Oxwc>,
-    state: &mut Oxwc,
+    event_loop: &mut EventLoop<ProjectWC>,
+    state: &mut ProjectWC,
 ) -> Result<(), CompositorError> {
     let (mut winit_backend, winit) =
         winit::init::<GlesRenderer>().map_err(|e| CompositorError::Backend(format!("{:?}", e)))?;
@@ -25,7 +25,7 @@ pub fn init_winit(
     let physical_properties = PhysicalProperties {
         size: (0, 0).into(),
         subpixel: Subpixel::Unknown,
-        make: "oxwc".to_string(),
+        make: "projectwc".to_string(),
         model: "winit".into(),
     };
 
@@ -34,8 +34,8 @@ pub fn init_winit(
         refresh: 60_000,
     };
 
-    let output = Output::new("oxwc".into(), physical_properties);
-    output.create_global::<Oxwc>(&state.display_handle);
+    let output = Output::new("projectwc".into(), physical_properties);
+    output.create_global::<ProjectWC>(&state.display_handle);
     output.change_current_state(Some(mode), Some(Transform::Flipped180), None, None);
     output.set_preferred(mode);
 

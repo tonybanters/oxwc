@@ -1,6 +1,6 @@
 use crate::grabs::move_grab::MoveSurfaceGrab;
 use crate::grabs::resize_grab::{self, ResizeSurfaceGrab};
-use crate::state::{ClientState, Oxwc};
+use crate::state::{ClientState, ProjectWC};
 use smithay::desktop::{PopupManager, Space};
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
 use smithay::utils::Rectangle;
@@ -10,28 +10,28 @@ use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_data_device, delegate_output, delegate_seat, delegate_shm,
     delegate_xdg_shell,
-    desktop::{PopupKind, Window, find_popup_root_surface, get_popup_toplevel_coords},
+    desktop::{find_popup_root_surface, get_popup_toplevel_coords, PopupKind, Window},
     input::{
-        Seat, SeatHandler, SeatState,
         pointer::{CursorImageStatus, Focus, GrabStartData as PointerGrabStartData},
+        Seat, SeatHandler, SeatState,
     },
     reexports::wayland_server::{
-        Resource,
         protocol::{wl_buffer, wl_seat, wl_surface::WlSurface},
+        Resource,
     },
     utils::Serial,
     wayland::{
         buffer::BufferHandler,
         compositor::{
-            CompositorClientState, CompositorHandler, CompositorState, get_parent,
-            is_sync_subsurface,
+            get_parent, is_sync_subsurface, CompositorClientState, CompositorHandler,
+            CompositorState,
         },
         output::OutputHandler,
         selection::{
-            SelectionHandler,
             data_device::{
                 ClientDndGrabHandler, DataDeviceHandler, DataDeviceState, ServerDndGrabHandler,
             },
+            SelectionHandler,
         },
         shell::xdg::{
             PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
@@ -40,7 +40,7 @@ use smithay::{
     },
 };
 
-impl CompositorHandler for Oxwc {
+impl CompositorHandler for ProjectWC {
     fn compositor_state(&mut self) -> &mut CompositorState {
         &mut self.compositor_state
     }
@@ -79,20 +79,20 @@ impl CompositorHandler for Oxwc {
         resize_grab::handle_commit(&mut self.space, surface);
     }
 }
-delegate_compositor!(Oxwc);
+delegate_compositor!(ProjectWC);
 
-impl BufferHandler for Oxwc {
+impl BufferHandler for ProjectWC {
     fn buffer_destroyed(&mut self, _buffer: &wl_buffer::WlBuffer) {}
 }
 
-impl ShmHandler for Oxwc {
+impl ShmHandler for ProjectWC {
     fn shm_state(&self) -> &ShmState {
         &self.shm_state
     }
 }
-delegate_shm!(Oxwc);
+delegate_shm!(ProjectWC);
 
-impl XdgShellHandler for Oxwc {
+impl XdgShellHandler for ProjectWC {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
         &mut self.xdg_shell_state
     }
@@ -213,9 +213,9 @@ impl XdgShellHandler for Oxwc {
         }
     }
 }
-delegate_xdg_shell!(Oxwc);
+delegate_xdg_shell!(ProjectWC);
 
-impl SeatHandler for Oxwc {
+impl SeatHandler for ProjectWC {
     type KeyboardFocus = WlSurface;
     type PointerFocus = WlSurface;
     type TouchFocus = WlSurface;
@@ -228,26 +228,26 @@ impl SeatHandler for Oxwc {
 
     fn cursor_image(&mut self, _seat: &Seat<Self>, _image: CursorImageStatus) {}
 }
-delegate_seat!(Oxwc);
+delegate_seat!(ProjectWC);
 
-impl SelectionHandler for Oxwc {
+impl SelectionHandler for ProjectWC {
     type SelectionUserData = ();
 }
 
-impl DataDeviceHandler for Oxwc {
+impl DataDeviceHandler for ProjectWC {
     fn data_device_state(&self) -> &DataDeviceState {
         &self.data_device_state
     }
 }
-delegate_data_device!(Oxwc);
+delegate_data_device!(ProjectWC);
 
-impl ClientDndGrabHandler for Oxwc {}
-impl ServerDndGrabHandler for Oxwc {}
+impl ClientDndGrabHandler for ProjectWC {}
+impl ServerDndGrabHandler for ProjectWC {}
 
-impl OutputHandler for Oxwc {}
-delegate_output!(Oxwc);
+impl OutputHandler for ProjectWC {}
+delegate_output!(ProjectWC);
 
-impl Oxwc {
+impl ProjectWC {
     pub fn unconstrain_popup(&self, popup: &PopupSurface) {
         let Ok(root) = find_popup_root_surface(&PopupKind::Xdg(popup.clone())) else {
             return;
@@ -278,10 +278,10 @@ impl Oxwc {
 }
 
 fn check_grab(
-    seat: &Seat<Oxwc>,
+    seat: &Seat<ProjectWC>,
     surface: &WlSurface,
     serial: Serial,
-) -> Option<PointerGrabStartData<Oxwc>> {
+) -> Option<PointerGrabStartData<ProjectWC>> {
     let pointer = seat.get_pointer()?;
 
     // Check that this surface has a click grab.

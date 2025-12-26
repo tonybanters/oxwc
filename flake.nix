@@ -1,5 +1,5 @@
 {
-  description = "oxwc - A Wayland compositor in Rust.";
+  description = "projectwc - A Wayland compositor in Rust.";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
@@ -15,12 +15,12 @@
       default = pkgs.callPackage ./default.nix {
         gitRev = self.rev or self.dirtyRev or null;
       };
-      oxwc = default;
+      projectwc = default;
     });
 
     devShells = forAllSystems (pkgs: {
       default = pkgs.mkShell {
-        inputsFrom = [self.packages.${pkgs.stdenv.hostPlatform.system}.oxwc];
+        inputsFrom = [self.packages.${pkgs.stdenv.hostPlatform.system}.projectwc];
         packages = [
           pkgs.rustc
           pkgs.cargo
@@ -31,7 +31,7 @@
           pkgs.pkg-config
         ];
         shellHook = ''
-          export PS1="(oxwc-dev) $PS1"
+          export PS1="(projectwc-dev) $PS1"
         '';
 
         env = {
