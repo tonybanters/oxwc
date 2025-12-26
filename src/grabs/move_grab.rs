@@ -10,19 +10,19 @@ use smithay::{
     utils::{Logical, Point},
 };
 
-use crate::Oxwc;
+use crate::ProjectWC;
 
 pub struct MoveSurfaceGrab {
-    pub start_data: PointerGrabStartData<Oxwc>,
+    pub start_data: PointerGrabStartData<ProjectWC>,
     pub window: Window,
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl PointerGrab<Oxwc> for MoveSurfaceGrab {
+impl PointerGrab<ProjectWC> for MoveSurfaceGrab {
     fn motion(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         _focus: Option<(WlSurface, Point<f64, Logical>)>,
         event: &MotionEvent,
     ) {
@@ -37,8 +37,8 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn relative_motion(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         focus: Option<(WlSurface, Point<f64, Logical>)>,
         event: &RelativeMotionEvent,
     ) {
@@ -47,8 +47,8 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn button(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         event: &ButtonEvent,
     ) {
         handle.button(data, event);
@@ -65,21 +65,21 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn axis(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         details: AxisFrame,
     ) {
         handle.axis(data, details)
     }
 
-    fn frame(&mut self, data: &mut Oxwc, handle: &mut PointerInnerHandle<'_, Oxwc>) {
+    fn frame(&mut self, data: &mut ProjectWC, handle: &mut PointerInnerHandle<'_, ProjectWC>) {
         handle.frame(data);
     }
 
     fn gesture_swipe_begin(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         event: &GestureSwipeBeginEvent,
     ) {
         handle.gesture_swipe_begin(data, event)
@@ -87,8 +87,8 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn gesture_swipe_update(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         event: &GestureSwipeUpdateEvent,
     ) {
         handle.gesture_swipe_update(data, event)
@@ -96,8 +96,8 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn gesture_swipe_end(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         event: &GestureSwipeEndEvent,
     ) {
         handle.gesture_swipe_end(data, event)
@@ -105,8 +105,8 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn gesture_pinch_begin(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         event: &GesturePinchBeginEvent,
     ) {
         handle.gesture_pinch_begin(data, event)
@@ -114,8 +114,8 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn gesture_pinch_update(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         event: &GesturePinchUpdateEvent,
     ) {
         handle.gesture_pinch_update(data, event)
@@ -123,8 +123,8 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn gesture_pinch_end(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         event: &GesturePinchEndEvent,
     ) {
         handle.gesture_pinch_end(data, event)
@@ -132,8 +132,8 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn gesture_hold_begin(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         event: &GestureHoldBeginEvent,
     ) {
         handle.gesture_hold_begin(data, event)
@@ -141,16 +141,16 @@ impl PointerGrab<Oxwc> for MoveSurfaceGrab {
 
     fn gesture_hold_end(
         &mut self,
-        data: &mut Oxwc,
-        handle: &mut PointerInnerHandle<'_, Oxwc>,
+        data: &mut ProjectWC,
+        handle: &mut PointerInnerHandle<'_, ProjectWC>,
         event: &GestureHoldEndEvent,
     ) {
         handle.gesture_hold_end(data, event)
     }
 
-    fn start_data(&self) -> &PointerGrabStartData<Oxwc> {
+    fn start_data(&self) -> &PointerGrabStartData<ProjectWC> {
         &self.start_data
     }
 
-    fn unset(&mut self, _data: &mut Oxwc) {}
+    fn unset(&mut self, _data: &mut ProjectWC) {}
 }

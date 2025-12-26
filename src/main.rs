@@ -1,4 +1,4 @@
-use oxwc::{CompositorError, Result, state::Oxwc};
+use projectwc::{state::ProjectWC, CompositorError, Result};
 use smithay::reexports::{calloop::EventLoop, wayland_server::Display};
 
 fn main() -> Result<()> {
@@ -8,13 +8,13 @@ fn main() -> Result<()> {
         tracing_subscriber::fmt().init();
     }
 
-    let mut event_loop: EventLoop<Oxwc> =
+    let mut event_loop: EventLoop<ProjectWC> =
         EventLoop::try_new().map_err(|e| CompositorError::EventLoop(e.to_string()))?;
 
     let display = Display::new().map_err(|e| CompositorError::Backend(e.to_string()))?;
-    let mut state = Oxwc::new(display, event_loop.handle(), event_loop.get_signal());
+    let mut state = ProjectWC::new(display, event_loop.handle(), event_loop.get_signal());
 
-    oxwc::backend::winit::init_winit(&mut event_loop, &mut state)?;
+    projectwc::backend::winit::init_winit(&mut event_loop, &mut state)?;
 
     let spawn_cmd: Option<String> = std::env::args().nth(1);
     if let Some(cmd) = spawn_cmd {

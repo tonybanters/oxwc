@@ -1,4 +1,4 @@
-use crate::state::{MoveGrab, Oxwc};
+use crate::state::{MoveGrab, ProjectWC};
 use smithay::{
     backend::input::{
         AbsolutePositionEvent, Axis, AxisSource, ButtonState, Event, InputBackend, InputEvent,
@@ -11,7 +11,7 @@ use smithay::{
     utils::SERIAL_COUNTER,
 };
 
-impl Oxwc {
+impl ProjectWC {
     pub fn handle_input_event<B: InputBackend>(&mut self, event: InputEvent<B>) {
         match event {
             InputEvent::Keyboard { event } => self.handle_keyboard_event::<B>(event),
@@ -264,7 +264,7 @@ impl Oxwc {
     }
 }
 
-fn handle_keybinding(state: &mut Oxwc, modifiers: &ModifiersState, keysym: Keysym) -> bool {
+fn handle_keybinding(state: &mut ProjectWC, modifiers: &ModifiersState, keysym: Keysym) -> bool {
     if !modifiers.alt {
         return false;
     }

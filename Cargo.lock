@@ -894,16 +894,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oxwc"
-version = "0.1.0"
-dependencies = [
- "bitflags 2.10.0",
- "smithay",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -999,6 +989,16 @@ checksum = "52717f9a02b6965224f95ca2a81e2e0c5c43baacd28ca057577988930b6c3d5b"
 dependencies = [
  "quote",
  "syn",
+]
+
+[[package]]
+name = "projectwc"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.10.0",
+ "smithay",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
