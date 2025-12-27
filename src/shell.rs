@@ -1,42 +1,52 @@
 use crate::grabs::move_grab::MoveSurfaceGrab;
 use crate::grabs::resize_grab::{self, ResizeSurfaceGrab};
 use crate::state::{ClientState, ProjectWC};
+use smithay::delegate_layer_shell;
 use smithay::delegate_primary_selection;
-use smithay::desktop::{PopupManager, Space};
+use smithay::desktop::{
+    layer_map_for_output, LayerSurface as DesktopLayerSurface, PopupManager, Space,
+};
+use smithay::output::Output;
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
+use smithay::reexports::wayland_server::protocol::wl_output::WlOutput;
 use smithay::utils::Rectangle;
 use smithay::wayland::compositor;
 use smithay::wayland::selection::data_device::set_data_device_focus;
 use smithay::wayland::selection::primary_selection::{
-    PrimarySelectionHandler, PrimarySelectionState, set_primary_focus,
+    set_primary_focus, PrimarySelectionHandler, PrimarySelectionState,
+};
+use smithay::wayland::shell::wlr_layer::{
+    Layer, LayerSurface, LayerSurfaceData, WlrLayerShellHandler, WlrLayerShellState,
 };
 use smithay::wayland::shell::xdg::XdgToplevelSurfaceData;
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_data_device, delegate_output, delegate_seat, delegate_shm,
     delegate_xdg_shell,
-    desktop::{PopupKind, Window, find_popup_root_surface, get_popup_toplevel_coords},
+    desktop::{
+        find_popup_root_surface, get_popup_toplevel_coords, PopupKind, Window, WindowSurfaceType,
+    },
     input::{
-        Seat, SeatHandler, SeatState,
         pointer::{CursorImageStatus, Focus, GrabStartData as PointerGrabStartData},
+        Seat, SeatHandler, SeatState,
     },
     reexports::wayland_server::{
-        Resource,
         protocol::{wl_buffer, wl_seat, wl_surface::WlSurface},
+        Resource,
     },
     utils::Serial,
     wayland::{
         buffer::BufferHandler,
         compositor::{
-            CompositorClientState, CompositorHandler, CompositorState, get_parent,
-            is_sync_subsurface,
+            get_parent, is_sync_subsurface, CompositorClientState, CompositorHandler,
+            CompositorState,
         },
         output::OutputHandler,
         selection::{
-            SelectionHandler,
             data_device::{
                 ClientDndGrabHandler, DataDeviceHandler, DataDeviceState, ServerDndGrabHandler,
             },
+            SelectionHandler,
         },
         shell::xdg::{
             PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
@@ -82,6 +92,28 @@ impl CompositorHandler for ProjectWC {
 
         handle_commit(&mut self.popups, &self.space, surface);
         resize_grab::handle_commit(&mut self.space, surface);
+
+        for output in self.space.outputs().cloned().collect::<Vec<_>>() {
+            let mut layer_map = layer_map_for_output(&output);
+            if let Some(layer) = layer_map
+                .layer_for_surface(surface, WindowSurfaceType::ALL)
+                .cloned()
+            {
+                layer_map.arrange();
+
+                let initial_configure_sent = compositor::with_states(surface, |states| {
+                    states
+                        .data_map
+                        .get::<LayerSurfaceData>()
+                        .map(|data| data.lock().unwrap().initial_configure_sent)
+                        .unwrap_or(true)
+                });
+                if !initial_configure_sent {
+                    layer.layer_surface().send_configure();
+                }
+                break;
+            }
+        }
     }
 }
 delegate_compositor!(ProjectWC);
@@ -263,6 +295,37 @@ impl PrimarySelectionHandler for ProjectWC {
     }
 }
 delegate_primary_selection!(ProjectWC);
+
+impl WlrLayerShellHandler for ProjectWC {
+    fn shell_state(&mut self) -> &mut WlrLayerShellState {
+        &mut self.layer_shell_state
+    }
+
+    fn new_layer_surface(
+        &mut self,
+        surface: LayerSurface,
+        wl_output: Option<WlOutput>,
+        _layer: Layer,
+        namespace: String,
+    ) {
+        let output = wl_output
+            .as_ref()
+            .and_then(Output::from_resource)
+            .or_else(|| self.space.outputs().next().cloned());
+
+        let Some(output) = output else {
+            tracing::warn!("no output for layer surface namespace={namespace}");
+            return;
+        };
+
+        let desktop_layer_surface = DesktopLayerSurface::new(surface, namespace);
+        let mut layer_map = layer_map_for_output(&output);
+        if let Err(err) = layer_map.map_layer(&desktop_layer_surface) {
+            tracing::warn!("failed to map layer surface: {err:?}");
+        }
+    }
+}
+delegate_layer_shell!(ProjectWC);
 
 impl ProjectWC {
     pub fn unconstrain_popup(&self, popup: &PopupSurface) {
