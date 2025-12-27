@@ -4,11 +4,16 @@ use smithay::{
         AbsolutePositionEvent, Axis, AxisSource, ButtonState, Event, InputBackend, InputEvent,
         KeyState, KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent, PointerMotionEvent,
     },
+    desktop::layer_map_for_output,
     input::{
         keyboard::{FilterResult, Keysym, ModifiersState},
         pointer::{AxisFrame, ButtonEvent, MotionEvent},
     },
     utils::SERIAL_COUNTER,
+    wayland::{
+        compositor,
+        shell::wlr_layer::{KeyboardInteractivity, Layer as WlrLayer, LayerSurfaceCachedState},
+    },
 };
 
 impl ProjectWC {
@@ -32,6 +37,36 @@ impl ProjectWC {
         let key_state = event.state();
 
         let keyboard = self.seat.get_keyboard().expect("keyboard not initialized");
+
+        for layer in self.layer_shell_state.layer_surfaces().rev() {
+            let exclusive = compositor::with_states(layer.wl_surface(), |states| {
+                let mut guard = states.cached_state.get::<LayerSurfaceCachedState>();
+                let data = guard.current();
+
+                data.keyboard_interactivity == KeyboardInteractivity::Exclusive
+                    && (data.layer == WlrLayer::Top || data.layer == WlrLayer::Overlay)
+            });
+
+            if exclusive {
+                let surface = self.space.outputs().find_map(|output| {
+                    let map = layer_map_for_output(output);
+                    map.layers().find(|l| l.layer_surface() == &layer).cloned()
+                });
+
+                if let Some(surface) = surface {
+                    keyboard.set_focus(self, Some(surface.wl_surface().clone()), serial);
+                    keyboard.input::<(), _>(
+                        self,
+                        key_code,
+                        key_state,
+                        serial,
+                        time_msec,
+                        |_, _, _| FilterResult::Forward,
+                    );
+                    return;
+                }
+            }
+        }
 
         keyboard.input::<(), _>(
             self,
