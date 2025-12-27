@@ -92,10 +92,11 @@ impl CompositorHandler for ProjectWC {
         handle_commit(&mut self.popups, &self.space, surface);
         resize_grab::handle_commit(&mut self.space, surface);
 
-        for output in self.space.outputs().cloned().collect::<Vec<_>>() {
-            let mut layer_map = layer_map_for_output(&output);
+        // TODO: Split into handlers::layer_shell:handle_commit or smth like that
+        for output in self.space.outputs() {
+            let mut layer_map = layer_map_for_output(output);
             if let Some(layer) = layer_map
-                .layer_for_surface(surface, WindowSurfaceType::ALL)
+                .layer_for_surface(surface, WindowSurfaceType::TOPLEVEL)
                 .cloned()
             {
                 layer_map.arrange();
