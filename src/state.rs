@@ -1,12 +1,12 @@
 use smithay::{
     desktop::{PopupManager, Space, Window, WindowSurfaceType},
-    input::{Seat, SeatState, pointer::PointerHandle},
+    input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
-        calloop::{Interest, LoopHandle, LoopSignal, Mode, PostAction, generic::Generic},
+        calloop::{generic::Generic, Interest, LoopHandle, LoopSignal, Mode, PostAction},
         wayland_server::{
-            Display, DisplayHandle,
             backend::{ClientData, ClientId, DisconnectReason},
             protocol::wl_surface::WlSurface,
+            Display, DisplayHandle,
         },
     },
     utils::{Logical, Point},
@@ -14,7 +14,7 @@ use smithay::{
         compositor::{CompositorClientState, CompositorState},
         output::OutputManagerState,
         selection::{data_device::DataDeviceState, primary_selection::PrimarySelectionState},
-        shell::xdg::XdgShellState,
+        shell::{wlr_layer::WlrLayerShellState, xdg::XdgShellState},
         shm::ShmState,
         socket::ListeningSocketSource,
     },
@@ -22,8 +22,8 @@ use smithay::{
 use std::{ffi::OsString, sync::Arc};
 
 use crate::{
-    CompositorError,
     layout::{GapConfig, LayoutBox, LayoutType},
+    CompositorError,
 };
 
 pub struct ProjectWC {
@@ -46,6 +46,7 @@ pub struct ProjectWC {
     pub seat_state: SeatState<Self>,
     pub popups: PopupManager,
     pub primary_selection_state: PrimarySelectionState,
+    pub layer_shell_state: WlrLayerShellState,
 
     pub pointer_location: Point<f64, Logical>,
     pub move_grab: Option<MoveGrab>,
@@ -75,6 +76,7 @@ impl ProjectWC {
         let data_device_state = DataDeviceState::new::<Self>(&display_handle);
         let popups = PopupManager::default();
         let primary_selection_state = PrimarySelectionState::new::<Self>(&display_handle);
+        let layer_shell_state = WlrLayerShellState::new::<Self>(&display_handle);
         let mut seat_state = SeatState::new();
 
         let mut seat = seat_state.new_wl_seat(&display_handle, "winit");
@@ -108,6 +110,7 @@ impl ProjectWC {
             seat_state,
             popups,
             primary_selection_state,
+            layer_shell_state,
 
             pointer_location: Point::from((0.0, 0.0)),
             move_grab: None,
