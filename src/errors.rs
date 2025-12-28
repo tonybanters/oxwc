@@ -7,6 +7,7 @@ pub enum CompositorError {
     Renderer(String),
     Socket(std::io::Error),
     EventLoop(String),
+    Screencopy(String),
 }
 
 impl fmt::Display for CompositorError {
@@ -16,6 +17,7 @@ impl fmt::Display for CompositorError {
             Self::Renderer(msg) => write!(f, "renderer creation failed: {msg}"),
             Self::Socket(err) => write!(f, "wayland socket creation failed: {err}"),
             Self::EventLoop(msg) => write!(f, "event loop error: {msg}"),
+            Self::Screencopy(msg) => write!(f, "screencopy failed: {msg}"),
         }
     }
 }

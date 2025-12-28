@@ -2,23 +2,25 @@ use std::time::Duration;
 
 use smithay::{
     backend::{
+        allocator::Fourcc,
         renderer::{
-            damage::OutputDamageTracker, element::surface::WaylandSurfaceRenderElement,
-            gles::GlesRenderer,
+            damage::OutputDamageTracker,
+            element::surface::WaylandSurfaceRenderElement,
+            gles::{GlesRenderer, GlesTarget},
+            ExportMem,
         },
         winit::{self, WinitEvent},
     },
     output::{Mode, Output, PhysicalProperties, Subpixel},
     reexports::calloop::EventLoop,
-    utils::{Rectangle, Transform},
+    reexports::wayland_server::protocol::wl_shm::Format,
+    utils::{Physical, Rectangle, Size, Transform},
+    wayland::shm,
 };
 
-use crate::{CompositorError, ProjectWC};
+use crate::{shell::Screencopy, CompositorError, ProjectWC, Result};
 
-pub fn init_winit(
-    event_loop: &mut EventLoop<ProjectWC>,
-    state: &mut ProjectWC,
-) -> Result<(), CompositorError> {
+pub fn init_winit(event_loop: &mut EventLoop<ProjectWC>, state: &mut ProjectWC) -> Result<()> {
     let (mut winit_backend, winit) =
         winit::init::<GlesRenderer>().map_err(|e| CompositorError::Backend(format!("{:?}", e)))?;
 
@@ -65,6 +67,8 @@ pub fn init_winit(
                 let size = winit_backend.window_size();
                 let damage = Rectangle::from_size(size);
 
+                let pending_screencopy = state.pending_screencopy.take();
+
                 {
                     let (renderer, mut framebuffer) =
                         winit_backend.bind().expect("failed to bind winit window");
@@ -91,6 +95,22 @@ pub fn init_winit(
                     .submit(Some(&[damage]))
                     .expect("failed to submit damage");
 
+                if let Some(screencopy) = pending_screencopy {
+                    if screencopy.output() == &output {
+                        let (renderer, framebuffer) =
+                            winit_backend.bind().expect("failed to bind for screencopy");
+                        if let Err(err) = render_screencopy(
+                            renderer,
+                            &framebuffer,
+                            &output,
+                            screencopy,
+                            state.start_time,
+                        ) {
+                            tracing::warn!("screencopy failed: {err:?}");
+                        }
+                    }
+                }
+
                 state.space.elements().for_each(|window| {
                     window.send_frame(
                         &output,
@@ -110,6 +130,53 @@ pub fn init_winit(
             _ => (),
         })
         .map_err(|e| CompositorError::Backend(format!("{:?}", e)))?;
+
+    Ok(())
+}
+
+fn render_screencopy(
+    renderer: &mut GlesRenderer,
+    target: &GlesTarget<'_>,
+    _output: &Output,
+    screencopy: Screencopy,
+    start_time: std::time::Instant,
+) -> Result<()> {
+    let size = screencopy.buffer_size();
+    let buffer_size = Size::<i32, Physical>::from((size.w, size.h))
+        .to_logical(1)
+        .to_buffer(1, Transform::Normal);
+    let rect = Rectangle::from_size(buffer_size);
+
+    let mapping = renderer
+        .copy_framebuffer(target, rect, Fourcc::Xrgb8888)
+        .map_err(|e| CompositorError::Screencopy(format!("copy_framebuffer: {e:?}")))?;
+    let bytes = renderer
+        .map_texture(&mapping)
+        .map_err(|e| CompositorError::Screencopy(format!("map_texture: {e:?}")))?;
+
+    shm::with_buffer_contents_mut(&screencopy.buffer, |shm_buffer, shm_len, buffer_data| {
+        if buffer_data.format != Format::Xrgb8888
+            || buffer_data.width != size.w
+            || buffer_data.height != size.h
+            || buffer_data.stride != size.w * 4
+            || shm_len != buffer_data.stride as usize * buffer_data.height as usize
+        {
+            tracing::warn!(
+                "buffer validation failed: format={:?} size={}x{} stride={} len={}",
+                buffer_data.format,
+                buffer_data.width,
+                buffer_data.height,
+                buffer_data.stride,
+                shm_len
+            );
+            return;
+        }
+        let dst = unsafe { std::slice::from_raw_parts_mut(shm_buffer.cast::<u8>(), shm_len) };
+        dst.copy_from_slice(&bytes[..shm_len]);
+    })
+    .map_err(|e| CompositorError::Screencopy(format!("shm buffer: {e:?}")))?;
+
+    screencopy.submit(start_time.elapsed());
 
     Ok(())
 }

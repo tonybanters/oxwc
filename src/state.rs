@@ -23,6 +23,7 @@ use std::{ffi::OsString, sync::Arc};
 
 use crate::{
     layout::{GapConfig, LayoutBox, LayoutType},
+    shell::{Screencopy, ScreencopyManagerState},
     CompositorError,
 };
 
@@ -47,9 +48,11 @@ pub struct ProjectWC {
     pub popups: PopupManager,
     pub primary_selection_state: PrimarySelectionState,
     pub layer_shell_state: WlrLayerShellState,
+    pub screencopy_state: ScreencopyManagerState,
 
     pub pointer_location: Point<f64, Logical>,
     pub move_grab: Option<MoveGrab>,
+    pub pending_screencopy: Option<Screencopy>,
 }
 
 pub struct MoveGrab {
@@ -77,6 +80,7 @@ impl ProjectWC {
         let popups = PopupManager::default();
         let primary_selection_state = PrimarySelectionState::new::<Self>(&display_handle);
         let layer_shell_state = WlrLayerShellState::new::<Self>(&display_handle);
+        let screencopy_state = ScreencopyManagerState::new::<Self, _>(&display_handle, |_| true);
         let mut seat_state = SeatState::new();
 
         let mut seat = seat_state.new_wl_seat(&display_handle, "winit");
@@ -111,9 +115,11 @@ impl ProjectWC {
             popups,
             primary_selection_state,
             layer_shell_state,
+            screencopy_state,
 
             pointer_location: Point::from((0.0, 0.0)),
             move_grab: None,
+            pending_screencopy: None,
         }
     }
 
