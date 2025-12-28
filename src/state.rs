@@ -1,12 +1,12 @@
 use smithay::{
     desktop::{PopupManager, Space, Window, WindowSurfaceType},
-    input::{pointer::PointerHandle, Seat, SeatState},
+    input::{Seat, SeatState, pointer::PointerHandle},
     reexports::{
-        calloop::{generic::Generic, Interest, LoopHandle, LoopSignal, Mode, PostAction},
+        calloop::{Interest, LoopHandle, LoopSignal, Mode, PostAction, generic::Generic},
         wayland_server::{
+            Display, DisplayHandle,
             backend::{ClientData, ClientId, DisconnectReason},
             protocol::wl_surface::WlSurface,
-            Display, DisplayHandle,
         },
     },
     utils::{Logical, Point},
@@ -22,9 +22,9 @@ use smithay::{
 use std::{ffi::OsString, sync::Arc};
 
 use crate::{
+    CompositorError,
     layout::{GapConfig, LayoutBox, LayoutType},
     shell::{Screencopy, ScreencopyManagerState},
-    CompositorError,
 };
 
 pub struct ProjectWC {

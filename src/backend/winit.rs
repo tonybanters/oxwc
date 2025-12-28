@@ -4,10 +4,10 @@ use smithay::{
     backend::{
         allocator::Fourcc,
         renderer::{
+            ExportMem,
             damage::OutputDamageTracker,
             element::surface::WaylandSurfaceRenderElement,
             gles::{GlesRenderer, GlesTarget},
-            ExportMem,
         },
         winit::{self, WinitEvent},
     },
@@ -18,7 +18,7 @@ use smithay::{
     wayland::shm,
 };
 
-use crate::{shell::Screencopy, CompositorError, ProjectWC, Result};
+use crate::{CompositorError, ProjectWC, Result, shell::Screencopy};
 
 pub fn init_winit(event_loop: &mut EventLoop<ProjectWC>, state: &mut ProjectWC) -> Result<()> {
     let (mut winit_backend, winit) =

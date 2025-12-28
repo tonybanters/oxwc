@@ -1,5 +1,5 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use crate::grabs::move_grab::MoveSurfaceGrab;
@@ -7,7 +7,7 @@ use crate::grabs::resize_grab::{self, ResizeSurfaceGrab};
 use crate::state::{ClientState, ProjectWC};
 use smithay::delegate_layer_shell;
 use smithay::delegate_primary_selection;
-use smithay::desktop::{layer_map_for_output, LayerSurface, PopupManager, Space};
+use smithay::desktop::{LayerSurface, PopupManager, Space, layer_map_for_output};
 use smithay::output::Output;
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
 use smithay::reexports::wayland_protocols_wlr::screencopy::v1::server::{
@@ -24,7 +24,7 @@ use smithay::utils::{Physical, Rectangle, Size};
 use smithay::wayland::compositor;
 use smithay::wayland::selection::data_device::set_data_device_focus;
 use smithay::wayland::selection::primary_selection::{
-    set_primary_focus, PrimarySelectionHandler, PrimarySelectionState,
+    PrimarySelectionHandler, PrimarySelectionState, set_primary_focus,
 };
 use smithay::wayland::shell::wlr_layer::{
     Layer, LayerSurface as WlrLayerSurface, LayerSurfaceData, WlrLayerShellHandler,
@@ -37,29 +37,29 @@ use smithay::{
     delegate_compositor, delegate_data_device, delegate_output, delegate_seat, delegate_shm,
     delegate_xdg_shell,
     desktop::{
-        find_popup_root_surface, get_popup_toplevel_coords, PopupKind, Window, WindowSurfaceType,
+        PopupKind, Window, WindowSurfaceType, find_popup_root_surface, get_popup_toplevel_coords,
     },
     input::{
-        pointer::{CursorImageStatus, Focus, GrabStartData as PointerGrabStartData},
         Seat, SeatHandler, SeatState,
+        pointer::{CursorImageStatus, Focus, GrabStartData as PointerGrabStartData},
     },
     reexports::wayland_server::{
-        protocol::{wl_buffer, wl_seat, wl_surface::WlSurface},
         Resource,
+        protocol::{wl_buffer, wl_seat, wl_surface::WlSurface},
     },
     utils::Serial,
     wayland::{
         buffer::BufferHandler,
         compositor::{
-            get_parent, is_sync_subsurface, CompositorClientState, CompositorHandler,
-            CompositorState,
+            CompositorClientState, CompositorHandler, CompositorState, get_parent,
+            is_sync_subsurface,
         },
         output::OutputHandler,
         selection::{
+            SelectionHandler,
             data_device::{
                 ClientDndGrabHandler, DataDeviceHandler, DataDeviceState, ServerDndGrabHandler,
             },
-            SelectionHandler,
         },
         shell::xdg::{
             PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
