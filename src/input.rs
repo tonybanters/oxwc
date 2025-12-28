@@ -306,12 +306,12 @@ fn handle_keybinding(state: &mut ProjectWC, modifiers: &ModifiersState, keysym: 
 
     match keysym {
         Keysym::Escape => {
-            tracing::info!("Quitting");
+            tracing::debug!("Quitting");
             state.loop_signal.stop();
             true
         }
         Keysym::Return => {
-            tracing::info!("Spawning weston-terminal");
+            tracing::debug!("Spawning weston-terminal");
             std::process::Command::new("weston-terminal").spawn().ok();
             true
         }
@@ -330,6 +330,14 @@ fn handle_keybinding(state: &mut ProjectWC, modifiers: &ModifiersState, keysym: 
                     }
                 }
             }
+            true
+        }
+        Keysym::d => {
+            tracing::debug!("Spawning rofi menu");
+            let _ = std::process::Command::new("rofi")
+                .arg("-show")
+                .arg("drun")
+                .spawn();
             true
         }
         _ => false,
