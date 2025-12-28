@@ -25,6 +25,7 @@
           pkgs.rustc
           pkgs.cargo
           pkgs.clippy
+          pkgs.rustfmt
           pkgs.foot
           pkgs.westonLite # weston-terminal
           pkgs.just
