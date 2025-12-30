@@ -110,7 +110,13 @@ impl PointerGrab<ProjectWC> for ResizeSurfaceGrab {
             compositor::with_states(self.window.toplevel().unwrap().wl_surface(), |states| {
                 let mut guard = states.cached_state.get::<SurfaceCachedState>();
                 let data = guard.current();
-                (data.min_size, data.max_size)
+                // Workaround for https://github.com/Smithay/smithay/issues/873
+                let min_size = data
+                    .geometry
+                    .map(|geo| data.min_size + geo.loc.to_size_abs())
+                    .unwrap_or(data.min_size);
+
+                (min_size, data.max_size)
             });
 
         let min_width = min_size.w.max(1);
