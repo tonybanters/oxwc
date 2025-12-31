@@ -1,1 +1,1 @@
-pub mod screencopy;
+pub mod wlr_screencopy;
