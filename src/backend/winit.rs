@@ -18,7 +18,7 @@ use smithay::{
     wayland::shm,
 };
 
-use crate::{CompositorError, ProjectWC, Result, shell::Screencopy};
+use crate::{CompositorError, ProjectWC, Result, protocols::screencopy::Screencopy};
 
 pub fn init_winit(event_loop: &mut EventLoop<ProjectWC>, state: &mut ProjectWC) -> Result<()> {
     let (mut winit_backend, winit) =

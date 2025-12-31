@@ -24,7 +24,7 @@ use std::{ffi::OsString, sync::Arc};
 use crate::{
     CompositorError,
     layout::{GapConfig, LayoutBox, LayoutType},
-    shell::{Screencopy, ScreencopyManagerState},
+    protocols::screencopy::{Screencopy, ScreencopyManagerState},
 };
 
 pub struct ProjectWC {
