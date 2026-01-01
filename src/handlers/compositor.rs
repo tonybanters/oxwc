@@ -1,7 +1,7 @@
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_shm,
-    desktop::{PopupKind, PopupManager, Space, Window, WindowSurfaceType, layer_map_for_output},
+    desktop::{PopupKind, PopupManager, Space, Window},
     reexports::wayland_server::protocol::{wl_buffer, wl_surface::WlSurface},
     wayland::{
         buffer::BufferHandler,
@@ -9,12 +9,12 @@ use smithay::{
             self, CompositorClientState, CompositorHandler, CompositorState, get_parent,
             is_sync_subsurface,
         },
-        shell::{wlr_layer::LayerSurfaceData, xdg::XdgToplevelSurfaceData},
+        shell::xdg::XdgToplevelSurfaceData,
         shm::{ShmHandler, ShmState},
     },
 };
 
-use crate::{ProjectWC, grabs::resize_grab, state::ClientState};
+use crate::{ProjectWC, grabs::resize_grab, handlers::layer_shell, state::ClientState};
 
 impl CompositorHandler for ProjectWC {
     fn compositor_state(&mut self) -> &mut CompositorState {
@@ -53,29 +53,7 @@ impl CompositorHandler for ProjectWC {
 
         handle_commit(&mut self.popups, &self.space, surface);
         resize_grab::handle_commit(&mut self.space, surface);
-
-        // TODO: Split into handlers::layer_shell:handle_commit or smth like that
-        for output in self.space.outputs() {
-            let mut layer_map = layer_map_for_output(output);
-            if let Some(layer) = layer_map
-                .layer_for_surface(surface, WindowSurfaceType::TOPLEVEL)
-                .cloned()
-            {
-                layer_map.arrange();
-
-                let initial_configure_sent = compositor::with_states(surface, |states| {
-                    states
-                        .data_map
-                        .get::<LayerSurfaceData>()
-                        .map(|data| data.lock().unwrap().initial_configure_sent)
-                        .unwrap_or(true)
-                });
-                if !initial_configure_sent {
-                    layer.layer_surface().send_configure();
-                }
-                break;
-            }
-        }
+        layer_shell::handle_commit(&mut self.space, surface);
     }
 }
 

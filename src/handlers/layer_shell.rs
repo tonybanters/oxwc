@@ -1,10 +1,13 @@
 use crate::state::ProjectWC;
 use smithay::delegate_layer_shell;
-use smithay::desktop::{LayerSurface, layer_map_for_output};
+use smithay::desktop::{LayerSurface, Space, Window, WindowSurfaceType, layer_map_for_output};
 use smithay::output::Output;
 use smithay::reexports::wayland_server::protocol::wl_output::WlOutput;
+use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+use smithay::wayland::compositor;
 use smithay::wayland::shell::wlr_layer::{
-    Layer, LayerSurface as WlrLayerSurface, WlrLayerShellHandler, WlrLayerShellState,
+    Layer, LayerSurface as WlrLayerSurface, LayerSurfaceData, WlrLayerShellHandler,
+    WlrLayerShellState,
 };
 use smithay::wayland::shell::xdg::PopupSurface;
 
@@ -56,3 +59,28 @@ impl WlrLayerShellHandler for ProjectWC {
     }
 }
 delegate_layer_shell!(ProjectWC);
+
+/// Should be called on `WlSurface::commit`
+pub fn handle_commit(space: &mut Space<Window>, surface: &WlSurface) {
+    for output in space.outputs() {
+        let mut layer_map = layer_map_for_output(output);
+        if let Some(layer) = layer_map
+            .layer_for_surface(surface, WindowSurfaceType::TOPLEVEL)
+            .cloned()
+        {
+            layer_map.arrange();
+
+            let initial_configure_sent = compositor::with_states(surface, |states| {
+                states
+                    .data_map
+                    .get::<LayerSurfaceData>()
+                    .map(|data| data.lock().unwrap().initial_configure_sent)
+                    .unwrap_or(true)
+            });
+            if !initial_configure_sent {
+                layer.layer_surface().send_configure();
+            }
+            break;
+        }
+    }
+}
