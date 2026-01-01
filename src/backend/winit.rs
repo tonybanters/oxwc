@@ -27,8 +27,9 @@ pub fn init_winit(event_loop: &mut EventLoop<ProjectWC>, state: &mut ProjectWC) 
     let physical_properties = PhysicalProperties {
         size: (0, 0).into(),
         subpixel: Subpixel::Unknown,
-        make: "projectwc".to_string(),
+        make: "projectwc".into(),
         model: "winit".into(),
+        serial_number: "Unknown".into(),
     };
 
     let mode = Mode {
