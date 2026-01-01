@@ -1,6 +1,8 @@
 use smithay::{
     delegate_xdg_shell,
-    desktop::{PopupKind, Window, find_popup_root_surface, get_popup_toplevel_coords},
+    desktop::{
+        PopupKind, PopupManager, Space, Window, find_popup_root_surface, get_popup_toplevel_coords,
+    },
     input::{
         Seat,
         pointer::{Focus, GrabStartData as PointerGrabStartData},
@@ -13,8 +15,12 @@ use smithay::{
         },
     },
     utils::{Rectangle, Serial},
-    wayland::shell::xdg::{
-        PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
+    wayland::{
+        compositor,
+        shell::xdg::{
+            PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
+            XdgToplevelSurfaceData,
+        },
     },
 };
 
@@ -168,6 +174,43 @@ fn check_grab(
     }
 
     Some(start_data)
+}
+
+/// Should be called on `WlSurface::commit`
+pub fn handle_commit(popups: &mut PopupManager, space: &Space<Window>, surface: &WlSurface) {
+    // Handle toplevel commits.
+    if let Some(window) = space
+        .elements()
+        .find(|w| w.toplevel().unwrap().wl_surface() == surface)
+        .cloned()
+    {
+        let initial_configure_sent = compositor::with_states(surface, |states| {
+            states
+                .data_map
+                .get::<XdgToplevelSurfaceData>()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .initial_configure_sent
+        });
+
+        if !initial_configure_sent {
+            window.toplevel().unwrap().send_configure();
+        }
+    }
+
+    // Handle popup commits.
+    popups.commit(surface);
+    if let Some(popup) = popups.find_popup(surface) {
+        match &popup {
+            PopupKind::Xdg(xdg) => {
+                if !xdg.is_initial_configure_sent() {
+                    xdg.send_configure().expect("initial configure failed");
+                }
+            }
+            PopupKind::InputMethod(_) => {}
+        }
+    }
 }
 
 impl ProjectWC {
