@@ -24,7 +24,10 @@ use smithay::{
     },
 };
 
-use crate::ProjectWC;
+use crate::{
+    ProjectWC, delegate_screencopy,
+    protocols::wlr_screencopy::{Screencopy, ScreencopyHandler, ScreencopyManagerState},
+};
 
 impl SeatHandler for ProjectWC {
     type KeyboardFocus = WlSurface;
@@ -94,3 +97,15 @@ impl PrimarySelectionHandler for ProjectWC {
     }
 }
 delegate_primary_selection!(ProjectWC);
+
+impl ScreencopyHandler for ProjectWC {
+    fn screencopy_state(&mut self) -> &mut ScreencopyManagerState {
+        &mut self.screencopy_state
+    }
+
+    fn frame(&mut self, screencopy: Screencopy) {
+        self.pending_screencopy = Some(screencopy);
+    }
+}
+
+delegate_screencopy!(ProjectWC);
