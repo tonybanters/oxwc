@@ -1,17 +1,21 @@
-use crate::state::{MoveGrab, ProjectWC};
+use crate::{grabs::move_grab::MoveGrab, state::ProjectWC};
 use smithay::{
     backend::input::{
         AbsolutePositionEvent, Axis, AxisSource, ButtonState, Event, InputBackend, InputEvent,
-        KeyState, KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent, PointerMotionEvent,
+        KeyState, KeyboardKeyEvent, MouseButton, PointerAxisEvent, PointerButtonEvent,
+        PointerMotionEvent,
     },
-    desktop::layer_map_for_output,
+    desktop::{WindowSurfaceType, layer_map_for_output},
     input::{
         keyboard::{FilterResult, Keysym, ModifiersState},
-        pointer::{AxisFrame, ButtonEvent, MotionEvent},
+        pointer::{
+            AxisFrame, ButtonEvent, Focus, GrabStartData as PointerGrabStartData, MotionEvent,
+        },
     },
-    utils::SERIAL_COUNTER,
+    utils::{Logical, Point, SERIAL_COUNTER, Serial},
     wayland::{
         compositor,
+        input_method::InputMethodSeat,
         shell::wlr_layer::{KeyboardInteractivity, Layer as WlrLayer, LayerSurfaceCachedState},
     },
 };
@@ -93,18 +97,6 @@ impl ProjectWC {
         self.pointer_location += delta;
         self.clamp_pointer_location();
 
-        if let Some(grab) = &self.move_grab {
-            let delta_x = self.pointer_location.x - grab.initial_pointer_location.x;
-            let delta_y = self.pointer_location.y - grab.initial_pointer_location.y;
-            let new_location = (
-                grab.initial_window_location.x + delta_x as i32,
-                grab.initial_window_location.y + delta_y as i32,
-            );
-            let window = grab.window.clone();
-            self.space.map_element(window, new_location, true);
-            return;
-        }
-
         let pointer = self.pointer();
         let under = self.surface_under_pointer();
 
@@ -138,18 +130,6 @@ impl ProjectWC {
         )
             .into();
 
-        if let Some(grab) = &self.move_grab {
-            let delta_x = self.pointer_location.x - grab.initial_pointer_location.x;
-            let delta_y = self.pointer_location.y - grab.initial_pointer_location.y;
-            let new_location = (
-                grab.initial_window_location.x + delta_x as i32,
-                grab.initial_window_location.y + delta_y as i32,
-            );
-            let window = grab.window.clone();
-            self.space.map_element(window, new_location, true);
-            return;
-        }
-
         let serial = SERIAL_COUNTER.next_serial();
         let pointer = self.pointer();
         let under = self.surface_under_pointer();
@@ -168,57 +148,39 @@ impl ProjectWC {
 
     fn handle_pointer_button<B: InputBackend>(&mut self, event: B::PointerButtonEvent) {
         let serial = SERIAL_COUNTER.next_serial();
-        let button = event.button_code();
+        let button = event.button();
+        let button_code = event.button_code();
         let button_state = event.state();
-        let left_button = 0x110;
+        let pointer = self.pointer();
 
         let keyboard = self.seat.get_keyboard().expect("keyboard not initialized");
         let alt_held = keyboard.modifier_state().alt;
 
         if ButtonState::Pressed == button_state
-            && button == left_button
+            && button == Some(MouseButton::Left)
             && alt_held
-            && let Some((window, _)) = self
-                .space
-                .element_under(self.pointer_location)
-                .map(|(w, l)| (w.clone(), l))
+            && let Some((window, _)) = self.window_under_pointer()
+            && !pointer.is_grabbed()
         {
-            let window_location = self
-                .space
-                .element_geometry(&window)
-                .map(|geo| geo.loc)
-                .unwrap_or_default();
-            self.move_grab = Some(MoveGrab {
+            let location = self.pointer_location;
+
+            let start_data = PointerGrabStartData {
+                focus: None,
+                button: button_code,
+                location,
+            };
+            let initial_window_location = self.space.element_location(&window).unwrap();
+            let grab = MoveGrab {
+                start_data,
                 window: window.clone(),
-                initial_window_location: window_location,
-                initial_pointer_location: self.pointer_location,
-            });
+                initial_window_location,
+            };
+            pointer.set_grab(self, grab, serial, Focus::Clear);
             self.space.raise_element(&window, true);
-            return;
         }
 
-        if ButtonState::Released == button_state
-            && button == left_button
-            && self.move_grab.is_some()
-        {
-            self.move_grab = None;
-            return;
-        }
-
-        if ButtonState::Pressed == button_state
-            && let Some((window, _)) = self
-                .space
-                .element_under(self.pointer_location)
-                .map(|(w, l)| (w.clone(), l))
-        {
-            self.space.raise_element(&window, true);
-
-            keyboard.set_focus(
-                self,
-                Some(window.toplevel().expect("toplevel").wl_surface().clone()),
-                serial,
-            );
-
+        if ButtonState::Pressed == button_state {
+            self.update_keyboard_focus(self.pointer_location, serial);
             self.space.elements().for_each(|window| {
                 window
                     .toplevel()
@@ -226,17 +188,91 @@ impl ProjectWC {
             });
         }
 
-        let pointer = self.pointer();
         pointer.button(
             self,
             &ButtonEvent {
-                button,
+                button: button_code,
                 state: button_state,
                 serial,
                 time: event.time_msec(),
             },
         );
         pointer.frame(self);
+    }
+
+    fn update_keyboard_focus(&mut self, location: Point<f64, Logical>, serial: Serial) {
+        let keyboard = self.seat.get_keyboard().unwrap();
+        let input_method = self.seat.input_method();
+
+        if !self.pointer().is_grabbed()
+            && (!keyboard.is_grabbed() || input_method.keyboard_grabbed())
+        {
+            tracing::debug!("Pointer and keyboard are not grabbed");
+            // There's only one output as of now
+            let output = self.space.outputs().next().cloned().unwrap();
+            let output_geo = self.space.output_geometry(&output).unwrap();
+
+            let layers = layer_map_for_output(&output);
+
+            #[allow(clippy::collapsible_if)]
+            if let Some(layer) = layers
+                .layer_under(WlrLayer::Overlay, location - output_geo.loc.to_f64())
+                .or_else(|| layers.layer_under(WlrLayer::Top, location - output_geo.loc.to_f64()))
+            {
+                if layer.can_receive_keyboard_focus() {
+                    tracing::debug!(
+                        namespace = layer.namespace(),
+                        "Layer can receive keyboard focus"
+                    );
+
+                    if let Some((_, _)) = layer.surface_under(
+                        location
+                            - output_geo.loc.to_f64()
+                            - layers.layer_geometry(layer).unwrap().loc.to_f64(),
+                        WindowSurfaceType::ALL,
+                    ) {
+                        let namespace = layer.namespace();
+                        tracing::debug!(namespace, "Set keyboard focus for layer");
+                        keyboard.set_focus(self, Some(layer.wl_surface().clone()), serial);
+                        return;
+                    }
+                }
+            }
+
+            if let Some((window, _)) = self
+                .space
+                .element_under(location)
+                .map(|(w, p)| (w.clone(), p))
+            {
+                tracing::debug!("Setting focus of surface under pointer");
+                self.space.raise_element(&window, true);
+                keyboard.set_focus(
+                    self,
+                    Some(window.toplevel().unwrap().wl_surface().clone()),
+                    serial,
+                );
+                return;
+            }
+
+            #[allow(clippy::collapsible_if)]
+            if let Some(layer) = layers
+                .layer_under(WlrLayer::Bottom, location - output_geo.loc.to_f64())
+                .or_else(|| {
+                    layers.layer_under(WlrLayer::Background, location - output_geo.loc.to_f64())
+                })
+            {
+                if layer.can_receive_keyboard_focus() {
+                    if let Some((_, _)) = layer.surface_under(
+                        location
+                            - output_geo.loc.to_f64()
+                            - layers.layer_geometry(layer).unwrap().loc.to_f64(),
+                        WindowSurfaceType::ALL,
+                    ) {
+                        keyboard.set_focus(self, Some(layer.wl_surface().clone()), serial);
+                    }
+                }
+            }
+        }
     }
 
     fn handle_pointer_axis<B: InputBackend>(&mut self, event: B::PointerAxisEvent) {

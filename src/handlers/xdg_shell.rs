@@ -26,7 +26,7 @@ use smithay::{
 
 use crate::{
     ProjectWC,
-    grabs::{move_grab::MoveSurfaceGrab, resize_grab::ResizeSurfaceGrab},
+    grabs::{move_grab::MoveGrab, resize_grab::ResizeSurfaceGrab},
 };
 
 impl XdgShellHandler for ProjectWC {
@@ -83,7 +83,7 @@ impl XdgShellHandler for ProjectWC {
 
             let initial_window_location = self.space.element_location(&window).unwrap();
 
-            let grab = MoveSurfaceGrab {
+            let grab = MoveGrab {
                 start_data,
                 window,
                 initial_window_location,

@@ -51,14 +51,7 @@ pub struct ProjectWC {
     pub screencopy_state: ScreencopyManagerState,
 
     pub pointer_location: Point<f64, Logical>,
-    pub move_grab: Option<MoveGrab>,
     pub pending_screencopy: Option<Screencopy>,
-}
-
-pub struct MoveGrab {
-    pub window: Window,
-    pub initial_window_location: Point<i32, Logical>,
-    pub initial_pointer_location: Point<f64, Logical>,
 }
 
 impl ProjectWC {
@@ -118,7 +111,6 @@ impl ProjectWC {
             screencopy_state,
 
             pointer_location: Point::from((0.0, 0.0)),
-            move_grab: None,
             pending_screencopy: None,
         }
     }
@@ -171,6 +163,12 @@ impl ProjectWC {
         }
 
         Ok(())
+    }
+
+    pub fn window_under_pointer(&self) -> Option<(Window, Point<i32, Logical>)> {
+        self.space
+            .element_under(self.pointer_location)
+            .map(|(w, p)| (w.clone(), p))
     }
 
     pub fn surface_under_pointer(&self) -> Option<(WlSurface, Point<f64, Logical>)> {

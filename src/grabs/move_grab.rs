@@ -12,13 +12,13 @@ use smithay::{
 
 use crate::ProjectWC;
 
-pub struct MoveSurfaceGrab {
+pub struct MoveGrab {
     pub start_data: PointerGrabStartData<ProjectWC>,
     pub window: Window,
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl PointerGrab<ProjectWC> for MoveSurfaceGrab {
+impl PointerGrab<ProjectWC> for MoveGrab {
     fn motion(
         &mut self,
         data: &mut ProjectWC,
