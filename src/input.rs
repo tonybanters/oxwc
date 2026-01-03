@@ -353,18 +353,11 @@ fn handle_keybinding(state: &mut ProjectWC, modifiers: &ModifiersState, keysym: 
         }
         Keysym::q => {
             let keyboard = state.seat.get_keyboard().unwrap();
-            if let Some(focused_surface) = keyboard.current_focus() {
-                for window in state.space.elements() {
-                    if window
-                        .toplevel()
-                        .map(|t| t.wl_surface() == &focused_surface)
-                        .unwrap_or(false)
-                    {
-                        tracing::info!("Closing focused window");
-                        window.toplevel().unwrap().send_close();
-                        break;
-                    }
-                }
+            if let Some(focused_surface) = keyboard.current_focus()
+                && let Some(window) = state.window_for_surface(&focused_surface)
+            {
+                tracing::info!("Closing focused window");
+                window.toplevel().unwrap().send_close();
             }
             true
         }
