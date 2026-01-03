@@ -159,6 +159,14 @@ impl ProjectWC {
                 out_geo.loc.x + geom.x_coordinate,
                 out_geo.loc.y + geom.y_coordinate,
             ));
+            
+            if let Some(toplevel) = window.toplevel() {
+                toplevel.with_pending_state(|state| {
+                    state.size = Some((geom.width as i32, geom.height as i32).into());
+                });
+                toplevel.send_pending_configure();
+            }
+            
             self.space.map_element(window, loc, false);
         }
 
