@@ -36,6 +36,7 @@ impl From<xdg_toplevel::ResizeEdge> for ResizeEdge {
     }
 }
 
+#[derive(Debug)]
 pub struct ResizeSurfaceGrab {
     start_data: PointerGrabStartData<ProjectWC>,
     window: Window,
