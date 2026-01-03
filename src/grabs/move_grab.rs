@@ -152,5 +152,7 @@ impl PointerGrab<ProjectWC> for MoveGrab {
         &self.start_data
     }
 
-    fn unset(&mut self, _data: &mut ProjectWC) {}
+    fn unset(&mut self, data: &mut ProjectWC) {
+        data.apply_layout().ok();
+    }
 }
