@@ -19,6 +19,7 @@ cargo run -- foot
 
 - `Alt+Return` - Spawn terminal (foot)
 - `Alt+Q` - Close focused window
+- `Alt+D` - Launch rofi
 - `Alt+Escape` - Quit compositor
 - `Alt+Click` - Drag window
 
