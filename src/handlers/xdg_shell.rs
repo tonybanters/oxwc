@@ -74,12 +74,7 @@ impl XdgShellHandler for ProjectWC {
         if let Some(start_data) = check_grab(&seat, wl_surface, serial) {
             let pointer = seat.get_pointer().unwrap();
 
-            let window = self
-                .space
-                .elements()
-                .find(|w| w.toplevel().unwrap().wl_surface() == wl_surface)
-                .unwrap()
-                .clone();
+            let window = self.window_for_surface(wl_surface).unwrap();
 
             let initial_window_location = self.space.element_location(&window).unwrap();
 
@@ -106,12 +101,7 @@ impl XdgShellHandler for ProjectWC {
         if let Some(start_data) = check_grab(&seat, wl_surface, serial) {
             let pointer = seat.get_pointer().unwrap();
 
-            let window = self
-                .space
-                .elements()
-                .find(|w| w.toplevel().unwrap().wl_surface() == wl_surface)
-                .unwrap()
-                .clone();
+            let window = self.window_for_surface(wl_surface).unwrap();
 
             let initial_window_location = self.space.element_location(&window).unwrap();
             let initial_window_size = window.geometry().size;
@@ -150,16 +140,7 @@ impl XdgShellHandler for ProjectWC {
     }
 
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
-        let window = self
-            .space
-            .elements()
-            .find(|window| {
-                window
-                    .toplevel()
-                    .map(|toplevel| toplevel == &surface)
-                    .unwrap_or(false)
-            })
-            .cloned();
+        let window = self.window_for_surface(surface.wl_surface());
 
         if let Some(window) = window {
             self.space.unmap_elem(&window);
@@ -236,17 +217,13 @@ impl ProjectWC {
             return;
         };
 
-        let Some(window) = self
-            .space
-            .elements()
-            .find(|w| w.toplevel().unwrap().wl_surface() == &root)
-        else {
+        let Some(window) = self.window_for_surface(&root) else {
             return;
         };
 
         let output = self.space.outputs().next().unwrap();
         let output_geo = self.space.output_geometry(output).unwrap();
-        let window_geo = self.space.element_geometry(window).unwrap();
+        let window_geo = self.space.element_geometry(&window).unwrap();
 
         // The target geometry for the positioner should be relative to its parent's geometry, so
         // we will compute that here.

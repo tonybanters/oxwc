@@ -39,17 +39,7 @@ impl CompositorHandler for ProjectWC {
                 root_surface = parent;
             }
 
-            if let Some(window) = self
-                .space
-                .elements()
-                .find(|window| {
-                    window
-                        .toplevel()
-                        .map(|toplevel| toplevel.wl_surface() == &root_surface)
-                        .unwrap_or(false)
-                })
-                .cloned()
-            {
+            if let Some(window) = self.window_for_surface(&root_surface) {
                 window.on_commit();
             }
         }
