@@ -62,6 +62,7 @@ pub fn init_winit(event_loop: &mut EventLoop<ProjectWC>, state: &mut ProjectWC) 
                     None,
                     None,
                 );
+                state.apply_layout().ok();
             }
             WinitEvent::Input(event) => state.handle_input_event(event),
             WinitEvent::Redraw => {
