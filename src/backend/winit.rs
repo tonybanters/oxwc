@@ -96,19 +96,19 @@ pub fn init_winit(event_loop: &mut EventLoop<ProjectWC>, state: &mut ProjectWC) 
                     .submit(Some(&[damage]))
                     .expect("failed to submit damage");
 
-                if let Some(screencopy) = pending_screencopy {
-                    if screencopy.output() == &output {
-                        let (renderer, framebuffer) =
-                            winit_backend.bind().expect("failed to bind for screencopy");
-                        if let Err(err) = render_screencopy(
-                            renderer,
-                            &framebuffer,
-                            &output,
-                            screencopy,
-                            state.start_time,
-                        ) {
-                            tracing::warn!("screencopy failed: {err:?}");
-                        }
+                if let Some(screencopy) = pending_screencopy
+                    && screencopy.output() == &output
+                {
+                    let (renderer, framebuffer) =
+                        winit_backend.bind().expect("failed to bind for screencopy");
+                    if let Err(err) = render_screencopy(
+                        renderer,
+                        &framebuffer,
+                        &output,
+                        screencopy,
+                        state.start_time,
+                    ) {
+                        tracing::warn!("screencopy failed: {err:?}");
                     }
                 }
 

@@ -53,10 +53,8 @@ impl Tiling {
         for i in 0..window_count {
             if i < num_master {
                 master_total += (master_size as f32 / master_facts) as i32;
-            } else {
-                if stack_facts > 0.0 {
-                    stack_total += (stack_size as f32 / stack_facts) as i32;
-                }
+            } else if stack_facts > 0.0 {
+                stack_total += (stack_size as f32 / stack_facts) as i32;
             }
         }
 
@@ -99,11 +97,7 @@ impl Layout for Tiling {
 
         let num_master_usize = num_master.max(0) as usize;
         let master_count = window_count.min(num_master_usize);
-        let stack_count = if window_count > num_master_usize {
-            window_count - num_master_usize
-        } else {
-            0
-        };
+        let stack_count = window_count.saturating_sub(num_master_usize);
 
         let master_height = (screen_height as i32)
             - (2 * outer_gap_horizontal) as i32
