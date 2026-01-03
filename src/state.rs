@@ -13,6 +13,7 @@ use smithay::{
     wayland::{
         compositor::{CompositorClientState, CompositorState},
         output::OutputManagerState,
+        seat::WaylandFocus,
         selection::{data_device::DataDeviceState, primary_selection::PrimarySelectionState},
         shell::{wlr_layer::WlrLayerShellState, xdg::XdgShellState},
         shm::ShmState,
@@ -163,6 +164,17 @@ impl ProjectWC {
         }
 
         Ok(())
+    }
+
+    pub fn window_for_surface(&self, surface: &WlSurface) -> Option<Window> {
+        self.space
+            .elements()
+            .find(|window| {
+                window
+                    .toplevel()
+                    .is_some_and(|tl| tl.wl_surface() == surface)
+            })
+            .cloned()
     }
 
     pub fn window_under_pointer(&self) -> Option<(Window, Point<i32, Logical>)> {
