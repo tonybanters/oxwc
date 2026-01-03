@@ -139,6 +139,17 @@ impl XdgShellHandler for ProjectWC {
         }
     }
 
+    fn unmaximize_request(&mut self, surface: ToplevelSurface) {
+        surface.with_pending_state(|state| {
+            state.states.unset(xdg_toplevel::State::Maximized);
+            state.size = None;
+        });
+
+        if surface.is_initial_configure_sent() {
+            surface.send_configure();
+        }
+    }
+
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
         let window = self.window_for_surface(surface.wl_surface());
 
