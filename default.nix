@@ -19,9 +19,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoLock = {
     lockFile = ./Cargo.lock;
-    outputHashes = {
-      "smithay-0.7.0" = "sha256-VTc1J3DiKUC79Jn4apUcK7XxEJmIaDXB5K0GE0OqR3g=";
-    };
+    allowBuiltinFetchGit = true;
   };
 
   nativeBuildInputs = [pkg-config];
