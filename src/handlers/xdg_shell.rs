@@ -147,6 +147,7 @@ impl XdgShellHandler for ProjectWC {
 
         if let Some(window) = window {
             self.space.unmap_elem(&window);
+            self.apply_layout().ok();
         }
     }
 }
