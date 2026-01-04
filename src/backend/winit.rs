@@ -88,7 +88,7 @@ pub fn init_winit(event_loop: &mut EventLoop<ProjectWC>, state: &mut ProjectWC) 
                         [&state.space],
                         &[],
                         &mut damage_tracker,
-                        [0.1, 0.1, 0.1, 1.0],
+                        make_rgb(150., 154., 171., 1.0),
                     )
                     .unwrap();
                 }
@@ -181,4 +181,8 @@ fn render_screencopy(
     screencopy.submit(start_time.elapsed());
 
     Ok(())
+}
+
+fn make_rgb(r: f32, g: f32, b: f32, a: f32) -> [f32; 4] {
+    [r / 255.0, g / 255.0, b / 255.0, a]
 }
