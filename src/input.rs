@@ -370,10 +370,12 @@ fn handle_keybinding(state: &mut ProjectWC, modifiers: &ModifiersState, keysym: 
             true
         }
         Keysym::j => {
+            tracing::debug!("Focused next window");
             Action::FocusNext.execute(state);
             true
         }
         Keysym::k => {
+            tracing::debug!("Focused previous window");
             Action::FocusPrevious.execute(state);
             true
         }
