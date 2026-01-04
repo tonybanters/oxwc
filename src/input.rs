@@ -1,4 +1,4 @@
-use crate::{grabs::move_grab::MoveGrab, state::ProjectWC};
+use crate::{action::Action, grabs::move_grab::MoveGrab, state::ProjectWC};
 use smithay::{
     backend::input::{
         AbsolutePositionEvent, Axis, AxisSource, ButtonState, Event, InputBackend, InputEvent,
@@ -367,6 +367,14 @@ fn handle_keybinding(state: &mut ProjectWC, modifiers: &ModifiersState, keysym: 
                 .arg("-show")
                 .arg("drun")
                 .spawn();
+            true
+        }
+        Keysym::j => {
+            Action::FocusNext.execute(state);
+            true
+        }
+        Keysym::k => {
+            Action::FocusPrevious.execute(state);
             true
         }
         _ => false,

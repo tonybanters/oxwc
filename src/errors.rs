@@ -8,6 +8,7 @@ pub enum CompositorError {
     Socket(std::io::Error),
     EventLoop(String),
     Screencopy(String),
+    InvalidAction,
 }
 
 impl fmt::Display for CompositorError {
@@ -18,6 +19,7 @@ impl fmt::Display for CompositorError {
             Self::Socket(err) => write!(f, "wayland socket creation failed: {err}"),
             Self::EventLoop(msg) => write!(f, "event loop error: {msg}"),
             Self::Screencopy(msg) => write!(f, "screencopy failed: {msg}"),
+            Self::InvalidAction => write!(f, "invalid action"),
         }
     }
 }
