@@ -41,10 +41,7 @@ fn change_focus(direction: Direction, project_wc: &mut ProjectWC) {
     });
 
     let target_idx = match (direction, current_idx) {
-        (Direction::Next, Some(i)) => {
-            let new_idx = i + 1;
-            new_idx.min(windows.len() - 1)
-        }
+        (Direction::Next, Some(i)) => usize::min(i + 1, windows.len() - 1),
         (Direction::Previous, Some(i)) => i.saturating_sub(1),
         _ => return,
     };
