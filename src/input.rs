@@ -88,7 +88,11 @@ impl ProjectWC {
     }
 
     fn handle_pointer_motion<B: InputBackend>(&mut self, event: B::PointerMotionEvent) {
-        tracing::debug!("pointer motion: pos=({:.0}, {:.0})", self.pointer_location.x, self.pointer_location.y);
+        tracing::debug!(
+            "pointer motion: pos=({:.0}, {:.0})",
+            self.pointer_location.x,
+            self.pointer_location.y
+        );
         let serial = SERIAL_COUNTER.next_serial();
         let delta = (event.delta_x(), event.delta_y()).into();
 
@@ -203,7 +207,9 @@ impl ProjectWC {
             .map(|(w, l)| (w.clone(), l));
         tracing::info!(
             "element_under: {:?}",
-            element_under.as_ref().map(|(w, l)| (w.toplevel().map(|t| t.wl_surface().id()), l))
+            element_under
+                .as_ref()
+                .map(|(w, l)| (w.toplevel().map(|t| t.wl_surface().id()), l))
         );
 
         if ButtonState::Pressed == button_state
