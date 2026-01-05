@@ -1,4 +1,5 @@
 use crate::state::{MoveGrab, ProjectWC};
+use smithay::reexports::wayland_server::Resource;
 use smithay::{
     backend::input::{
         AbsolutePositionEvent, Axis, AxisSource, ButtonState, Event, InputBackend, InputEvent,
@@ -87,6 +88,7 @@ impl ProjectWC {
     }
 
     fn handle_pointer_motion<B: InputBackend>(&mut self, event: B::PointerMotionEvent) {
+        tracing::debug!("pointer motion: pos=({:.0}, {:.0})", self.pointer_location.x, self.pointer_location.y);
         let serial = SERIAL_COUNTER.next_serial();
         let delta = (event.delta_x(), event.delta_y()).into();
 
@@ -167,6 +169,13 @@ impl ProjectWC {
     }
 
     fn handle_pointer_button<B: InputBackend>(&mut self, event: B::PointerButtonEvent) {
+        tracing::info!(
+            "pointer button: code={} state={:?} pos=({:.0}, {:.0})",
+            event.button_code(),
+            event.state(),
+            self.pointer_location.x,
+            self.pointer_location.y
+        );
         let serial = SERIAL_COUNTER.next_serial();
         let button = event.button_code();
         let button_state = event.state();
@@ -175,13 +184,32 @@ impl ProjectWC {
         let keyboard = self.seat.get_keyboard().expect("keyboard not initialized");
         let alt_held = keyboard.modifier_state().alt;
 
+        for window in self.space.elements() {
+            if let Some(geo) = self.space.element_geometry(window) {
+                tracing::info!(
+                    "window in space: {:?} at ({}, {}) size {}x{}",
+                    window.toplevel().map(|t| t.wl_surface().id()),
+                    geo.loc.x,
+                    geo.loc.y,
+                    geo.size.w,
+                    geo.size.h
+                );
+            }
+        }
+
+        let element_under = self
+            .space
+            .element_under(self.pointer_location)
+            .map(|(w, l)| (w.clone(), l));
+        tracing::info!(
+            "element_under: {:?}",
+            element_under.as_ref().map(|(w, l)| (w.toplevel().map(|t| t.wl_surface().id()), l))
+        );
+
         if ButtonState::Pressed == button_state
             && button == left_button
             && alt_held
-            && let Some((window, _)) = self
-                .space
-                .element_under(self.pointer_location)
-                .map(|(w, l)| (w.clone(), l))
+            && let Some((window, _)) = element_under.clone()
         {
             let window_location = self
                 .space
@@ -205,25 +233,22 @@ impl ProjectWC {
             return;
         }
 
-        if ButtonState::Pressed == button_state
-            && let Some((window, _)) = self
-                .space
-                .element_under(self.pointer_location)
-                .map(|(w, l)| (w.clone(), l))
-        {
-            self.space.raise_element(&window, true);
+        if ButtonState::Pressed == button_state {
+            if let Some((window, _)) = element_under {
+                self.space.raise_element(&window, true);
 
-            keyboard.set_focus(
-                self,
-                Some(window.toplevel().expect("toplevel").wl_surface().clone()),
-                serial,
-            );
+                keyboard.set_focus(
+                    self,
+                    Some(window.toplevel().expect("toplevel").wl_surface().clone()),
+                    serial,
+                );
 
-            self.space.elements().for_each(|window| {
-                window
-                    .toplevel()
-                    .map(|toplevel| toplevel.send_pending_configure());
-            });
+                self.space.elements().for_each(|window| {
+                    window
+                        .toplevel()
+                        .map(|toplevel| toplevel.send_pending_configure());
+                });
+            }
         }
 
         let pointer = self.pointer();
@@ -304,9 +329,15 @@ fn handle_keybinding(state: &mut ProjectWC, modifiers: &ModifiersState, keysym: 
         return false;
     }
 
+    if modifiers.shift && (keysym == Keysym::q || keysym == Keysym::Q) {
+        tracing::info!("quitting compositor");
+        state.loop_signal.stop();
+        return true;
+    }
+
     match keysym {
         Keysym::Escape => {
-            tracing::debug!("Quitting");
+            tracing::info!("quitting compositor");
             state.loop_signal.stop();
             true
         }

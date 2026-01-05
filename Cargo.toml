@@ -6,6 +6,12 @@ edition = "2024"
 [dependencies]
 smithay = { git = "https://github.com/Smithay/smithay/", default-features = false, features = [
   "backend_winit",
+  "backend_udev",
+  "backend_drm",
+  "backend_libinput",
+  "backend_gbm",
+  "backend_egl",
+  "backend_session_libseat",
   "desktop",
   "renderer_glow",
   "wayland_frontend",

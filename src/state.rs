@@ -1,12 +1,12 @@
 use smithay::{
     desktop::{PopupManager, Space, Window, WindowSurfaceType},
-    input::{Seat, SeatState, pointer::PointerHandle},
+    input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
-        calloop::{Interest, LoopHandle, LoopSignal, Mode, PostAction, generic::Generic},
+        calloop::{generic::Generic, Interest, LoopHandle, LoopSignal, Mode, PostAction},
         wayland_server::{
-            Display, DisplayHandle,
             backend::{ClientData, ClientId, DisconnectReason},
             protocol::wl_surface::WlSurface,
+            Display, DisplayHandle,
         },
     },
     utils::{Logical, Point},
@@ -22,9 +22,10 @@ use smithay::{
 use std::{ffi::OsString, sync::Arc};
 
 use crate::{
-    CompositorError,
+    backend::udev::UdevData,
     layout::{GapConfig, LayoutBox, LayoutType},
     protocols::wlr_screencopy::{Screencopy, ScreencopyManagerState},
+    CompositorError,
 };
 
 pub struct ProjectWC {
@@ -53,6 +54,7 @@ pub struct ProjectWC {
     pub pointer_location: Point<f64, Logical>,
     pub move_grab: Option<MoveGrab>,
     pub pending_screencopy: Option<Screencopy>,
+    pub udev: Option<UdevData>,
 }
 
 pub struct MoveGrab {
@@ -120,6 +122,7 @@ impl ProjectWC {
             pointer_location: Point::from((0.0, 0.0)),
             move_grab: None,
             pending_screencopy: None,
+            udev: None,
         }
     }
 

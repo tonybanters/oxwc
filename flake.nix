@@ -37,7 +37,16 @@
 
         env = {
           RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.wayland pkgs.libGL];
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+            pkgs.wayland
+            pkgs.libGL
+            pkgs.systemd
+            pkgs.libinput
+            pkgs.seatd
+            pkgs.libdrm
+            pkgs.mesa
+            pkgs.libgbm
+          ];
         };
       };
     });
