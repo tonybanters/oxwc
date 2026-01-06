@@ -16,11 +16,14 @@ enum Direction {
 
 impl Action {
     pub fn execute(self, project_wc: &mut ProjectWC) {
-        let direction = match self {
-            Action::FocusNext => Direction::Next,
-            Action::FocusPrevious => Direction::Previous,
+        match self {
+            Action::FocusNext => {
+                change_focus(Direction::Next, project_wc);
+            }
+            Action::FocusPrevious => {
+                change_focus(Direction::Previous, project_wc);
+            }
         };
-        change_focus(direction, project_wc);
     }
 }
 
